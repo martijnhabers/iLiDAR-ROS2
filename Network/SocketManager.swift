@@ -1,6 +1,6 @@
 //
 //  SocketManager.swift
-//  LiDARDepth
+//  iLiDAR
 //
 //  Created by Bo Liang on 2024/12/8.
 //
