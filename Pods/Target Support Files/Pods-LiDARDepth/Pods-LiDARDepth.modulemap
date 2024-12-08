@@ -1,0 +1,6 @@
+module Pods_LiDARDepth {
+  umbrella header "Pods-LiDARDepth-umbrella.h"
+
+  export *
+  module * { export * }
+}
