@@ -5,6 +5,8 @@ Abstract:
 An object that configures and manages the capture pipeline to stream video and LiDAR depth data.
 */
 
+// Modified by Bo Liang in 2024.
+
 import Foundation
 import AVFoundation
 import CoreImage

@@ -5,10 +5,12 @@ Abstract:
 The sample's main app.
 */
 
+// Modified by Bo Liang in 2024.
+
 import SwiftUI
 
 @main
-struct LiDARDepthApp: App {
+struct iLiDARAPP: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
