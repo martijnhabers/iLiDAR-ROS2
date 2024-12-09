@@ -47,6 +47,9 @@ To make our polished code and reproduced experiments available as soon as possib
 - [x] Release iLiDAR;
 - [x] Update the NetWork Support;
 - [x] Update the UI Supoort;
+- [ ] Correct the network status button;
+- [ ] Support to on/off lidar temperal filter;
+- [ ] Store popular local ips;
 - [ ] Update more local processing script;
 - [ ] Provide a full tutorial to beginning from zero;
 
