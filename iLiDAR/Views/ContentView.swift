@@ -239,19 +239,18 @@ struct ContentView: View {
         isConnecting = true
         connectionState = .connecting
         
-        // Update connection in DataStorage
-        DataStorage.shared.updateConnection(host_ip: hostIP, port: port)
-        
-        // Simulate connection delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if DataStorage.shared.readyToSend {
-                connectionState = .connected
-            } else {
-                connectionState = .failed
+        DataStorage.shared.updateConnection(host_ip: hostIP, port: port) { success in
+            DispatchQueue.main.async {
+                if success {
+                    self.connectionState = .connected
+                } else {
+                    self.connectionState = .failed
+                }
+                self.isConnecting = false
             }
-            isConnecting = false
         }
     }
+
     
     // MARK: - Disconnect Button Action
     private func disconnectButtonTapped() {
@@ -262,7 +261,7 @@ struct ContentView: View {
         DataStorage.shared.disconnect() // Ensure this method exists in DataStorage
         
         // Simulate disconnection delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             connectionState = .disconnected
             isConnecting = false
         }

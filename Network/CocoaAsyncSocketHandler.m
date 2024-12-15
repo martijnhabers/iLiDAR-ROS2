@@ -12,6 +12,7 @@
 
 @property (strong, nonatomic) GCDAsyncSocket *socket;
 @property (strong, nonatomic) NSMutableData *incomingBuffer;
+@property (assign, nonatomic) BOOL isConnecting;
 
 @end
 
@@ -21,6 +22,7 @@
     self = [super init];
     if (self) {
         _incomingBuffer = [NSMutableData data];
+        _isConnecting = NO;
     }
     return self;
 }
@@ -29,9 +31,15 @@
     self.socket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:dispatch_get_main_queue()];
     NSError *error = nil;
     
-    [self.socket connectToHost:host onPort:(uint16_t)port error:&error];
-    if (error) {
+    self.isConnecting = YES;
+    
+    BOOL started = [self.socket connectToHost:host onPort:(uint16_t)port error:&error];
+    if (!started || error) {
         NSLog(@"Fail to connect: %@", error.localizedDescription);
+        self.isConnecting = NO;
+        if (self.connectionCallback) {
+            self.connectionCallback(NO); // link failed
+        }
     }
 }
 
@@ -55,7 +63,11 @@
 // Delegate method: Connection successful
 - (void)socket:(GCDAsyncSocket *)sock didConnectToHost:(NSString *)host port:(uint16_t)port {
     NSLog(@"Successfully connected %@:%d", host, port);
+    self.isConnecting = NO;
     [self.socket readDataWithTimeout:-1 tag:0];
+    if (self.connectionCallback) {
+        self.connectionCallback(YES);
+    }
 }
 
 // Delegate method: Data received (optional, can be used for simple acknowledgments)
@@ -75,9 +87,14 @@
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
     if (err) {
         NSLog(@"Socket disconnected with error: %@", err.localizedDescription);
+        if (self.isConnecting && self.connectionCallback) {
+            self.connectionCallback(NO);
+        }
     } else {
         NSLog(@"Socket disconnected successfully.");
     }
+    
+    self.isConnecting = NO;
     
     // Optionally, notify about disconnection
     if (self.getResponseBlock) {

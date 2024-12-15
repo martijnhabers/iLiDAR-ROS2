@@ -76,8 +76,15 @@ class SocketManager {
             print("Received server response: \(response)")
         }
     }
-
-    func connectToServer(host_ip: String, port: Int) {
+    
+    func connectToServer(host_ip: String, port: Int, completion: @escaping (Bool) -> Void) {
+        // Set the completion block on the Objective-C side
+        socketHandler.connectionCallback = { success in
+            DispatchQueue.main.async {
+                completion(success)
+            }
+        }
+        
         socketHandler.setupSocketHost(host_ip, port: port)
     }
     

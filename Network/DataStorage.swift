@@ -2,8 +2,7 @@
 //  DataStorage.swift
 //  iLiDAR
 //
-//  Created by 梁博 on 2024/12/5.
-//  Copyright © 2024 Apple. All rights reserved.
+//  Created by Bo Liang on 2024/12/5.
 //
 
 import Foundation
@@ -21,10 +20,17 @@ class DataStorage {
     private(set) var currentPort = 5678
     
     init() {
-        socketManager.connectToServer(host_ip: currentHostIP, port: currentPort)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.readyToSend = true
-        }
+        socketManager.connectToServer(host_ip: currentHostIP, port: currentPort) { success in
+                    if success {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            self.readyToSend = true
+                            print("Initial connection established, ready to send.")
+                        }
+                    } else {
+                        self.readyToSend = false
+                        print("Initial connection failed to \(self.currentHostIP):\(self.currentPort)")
+                    }
+                }
     }
     
     func disconnect() {
@@ -32,25 +38,56 @@ class DataStorage {
         readyToSend = false
     }
     
-    // Method to update IP and port
-    func updateConnection(host_ip: String, port: Int) {
+    
+    func updateConnection(host_ip: String, port: Int, completion: @escaping (Bool) -> Void) {
         // Disconnect existing connection
         socketManager.disconnect()
+        readyToSend = false
         
         // Update current IP and port
         currentHostIP = host_ip
         currentPort = port
         
-        // Attempt to connect with new settings
-        socketManager.connectToServer(host_ip: host_ip, port: port)
+        var completionCalled = false
         
-        // Reset readyToSend and set it after a delay
-        readyToSend = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.readyToSend = true
-            print("Ready to send data with new connection settings.")
+        // Schedule a 3-second timeout on the main run loop
+        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            guard let self = self, !completionCalled else { return }
+            // Timeout triggered (no successful connection within 3s)
+            self.readyToSend = false
+            print("Connection to \(host_ip):\(port) timed out after 3 seconds.")
+            completionCalled = true
+            completion(false)
+        }
+
+        // Attempt to connect with the new settings
+        socketManager.connectToServer(host_ip: host_ip, port: port) { success in
+            // Switch back to the main thread for UI/state updates
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, !completionCalled else { return }
+                // Cancel the timeout timer since we got a result
+                timer.invalidate()
+                
+                if success {
+                    // Connection succeeded
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.readyToSend = true
+                        print("Ready to send data with new connection settings.")
+                        completionCalled = true
+                        completion(true)
+                    }
+                } else {
+                    // Connection failed immediately
+                    self.readyToSend = false
+                    print("Failed to connect to the server at \(host_ip):\(port).")
+                    completionCalled = true
+                    completion(false)
+                }
+            }
         }
     }
+
+
     
     func convertDepthData(depthData: CVPixelBuffer) -> Data? {
         CVPixelBufferLockBaseAddress(depthData, .readOnly)

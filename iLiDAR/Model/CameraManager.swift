@@ -5,6 +5,8 @@ Abstract:
 An object that connects the camera controller and the views.
 */
 
+// Modified by Bo Liang in 2024.
+
 import Foundation
 import SwiftUI
 import Combine

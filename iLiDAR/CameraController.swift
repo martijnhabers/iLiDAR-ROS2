@@ -44,7 +44,7 @@ class CameraController: NSObject, ObservableObject {
     
     weak var delegate: CaptureDataReceiver?
     
-    var isFilteringEnabled = true {
+    var isFilteringEnabled = false {
         didSet {
             depthDataOutput.isFilteringEnabled = isFilteringEnabled
         }
