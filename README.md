@@ -47,7 +47,7 @@ To make our polished code and reproduced experiments available as soon as possib
 - [x] Release iLiDAR;
 - [x] Update the NetWork Support;
 - [x] Update the UI Supoort;
-- [ ] Correct the network status button;
+- [x] Correct the network status button;
 - [ ] Support to on/off lidar temperal filter;
 - [ ] Store popular local ips;
 - [ ] Update more local processing script;
@@ -79,6 +79,3 @@ This program is built upon [Apple official depth camera example](https://develop
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
-
-
-

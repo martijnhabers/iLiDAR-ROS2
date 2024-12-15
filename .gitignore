@@ -9,6 +9,7 @@
 *.bin
 *.jpg
 *.png
+*.csv
 
 # Xcode - User files
 xcuserdata/
