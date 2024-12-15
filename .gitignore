@@ -5,6 +5,11 @@
 # Finder
 .DS_Store
 
+# More data than examples
+*.bin
+*.jpg
+*.png
+
 # Xcode - User files
 xcuserdata/
 
