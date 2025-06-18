@@ -9,9 +9,13 @@ import socket
 import threading
 import struct
 import os
-import cv2  # Import OpenCV
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage, PointCloud2, PointField
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import numpy as np
-import queue  # Import queue for thread-safe communication
+from read_depth_data import read_raw_depth_data
+import queue
 
 # =========================
 # Configuration Parameters
@@ -33,8 +37,9 @@ DATA_TYPE_EXTENSION = {
 SERVER_HOST = '0.0.0.0'  # Listen on all available interfaces
 SERVER_PORT = 5678        # Port to listen on
 
-# Directory where received files will be stored
-SAVE_DIRECTORY = 'uploads'
+SAVE_DIRECTORY = 'uploads'  # Directory to save uploaded files
+
+# Create the uploads directory if it doesn't exist
 os.makedirs(SAVE_DIRECTORY, exist_ok=True)
 
 # =========================
@@ -79,17 +84,90 @@ class FileReceiver:
         sorted_chunks = [self.chunks[seq] for seq in sorted(self.chunks.keys())]
         return b''.join(sorted_chunks)
 
+class ImagePublisher(Node):
+
+    qos_profile = QoSProfile(
+        reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        history=QoSHistoryPolicy.KEEP_LAST,
+        depth=5
+        )
+
+    def __init__(self):
+        super().__init__('image_publisher')
+        self.publisher_ = self.create_publisher(CompressedImage, '/color_image/compressed', self.qos_profile)
+
+    def publish_jpeg(self, jpeg_data, frame_id='color_image'):
+        msg = CompressedImage()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = frame_id
+        msg.format = 'jpeg'
+        msg.data = jpeg_data
+        self.publisher_.publish(msg)
+
+class PointCloudPublisher(Node):
+
+    def __init__(self):
+        super().__init__('pointcloud_publisher')
+        self.publisher_ = self.create_publisher(PointCloud2, '/depth_pointcloud', 10)
+
+    def publish_pointcloud(self, depth_data, width, height, fx, fy, cx, cy):
+        """
+        Converts depth data to a point cloud and publishes it.
+
+        Parameters:
+        - depth_data: numpy.ndarray, the 2D array of depth values
+        - width, height: int, dimensions of the depth image
+        - fx, fy: float, focal lengths of the camera
+        - cx, cy: float, principal point offsets of the camera
+        """
+        points = []
+
+        for v in range(height):
+            for u in range(width):
+                z = depth_data[v, u]
+                if z == 0:  # Skip invalid depth values
+                    continue
+                x = (u - cx) * z / fx
+                y = (v - cy) * z / fy
+                points.append((x, y, z))
+
+        # Create PointCloud2 message
+        pointcloud_msg = PointCloud2()
+        pointcloud_msg.header.stamp = self.get_clock().now().to_msg()
+        pointcloud_msg.header.frame_id = 'camera_frame'
+
+        # Define the fields of the point cloud
+        pointcloud_msg.fields = [
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
+        ]
+
+        pointcloud_msg.is_bigendian = False
+        pointcloud_msg.point_step = 12  # 3 floats per point (x, y, z)
+        pointcloud_msg.row_step = pointcloud_msg.point_step * len(points)
+        pointcloud_msg.height = 1
+        pointcloud_msg.width = len(points)
+        pointcloud_msg.is_dense = True
+
+        # Pack the point data into a binary array
+        pointcloud_msg.data = struct.pack('<' + 'fff' * len(points), *np.array(points).flatten())
+
+        self.publisher_.publish(pointcloud_msg)
+        self.get_logger().info(f"Published point cloud with {len(points)} points")
+
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address):
+    def __init__(self, client_socket, client_address, image_publisher, pointcloud_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
         self.buffer = b''  # Buffer to store incoming data
         self.files = {}     # Maps filename to FileReceiver instances
-        self.image_queue = queue.Queue()  # Queue for storing images to be displayed
+        self.image_publisher = image_publisher
+        self.pointcloud_publisher = pointcloud_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -177,8 +255,8 @@ class ClientHandler(threading.Thread):
         # Map data type to string for logging
         data_type_str = DATA_TYPE_EXTENSION.get(data_type, f'Unknown({data_type})')
 
-        # print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
-        #       f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
+        print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
+              f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
 
         # Initialize FileReceiver if it's the first chunk of the file
         if filename not in self.files:
@@ -193,17 +271,23 @@ class ClientHandler(threading.Thread):
         # Check if the file is fully received
         if file_receiver.is_complete():
             complete_data = file_receiver.reconstruct_file()
-            extension = DATA_TYPE_EXTENSION.get(file_receiver.data_type, '')
 
-            if extension == '.jpg':
-                image = cv2.imdecode(np.frombuffer(complete_data, np.uint8), cv2.IMREAD_COLOR)
-                if image is not None:
-                    print(f"[Debug] Image decoded successfully for {filename}")
-                    self.image_queue.put(image)  # Add image to the queue
-                else:
-                    print(f"[!] Failed to decode image {filename}")
+            if file_receiver.data_type == DATA_TYPE_BIN:
+                depth_width = 320  # Example width
+                depth_height = 240  # Example height
+                fx, fy = 498.72195, 498.72195  # Updated focal lengths from camera params
+                cx, cy = 317.22327, 239.91258  # Updated principal point offsets from camera params
 
+                # Directly process depth data from the complete payload
+                depth_data = np.frombuffer(complete_data, dtype=np.float16).reshape((depth_height, depth_width))
+                self.pointcloud_publisher.publish_pointcloud(depth_data, depth_width, depth_height, fx, fy, cx, cy)
+                print(f"[+] Point cloud published to /depth_pointcloud")
 
+            ack_message = f"File '{filename}' received and processed successfully."
+            self.send_acknowledgment(ack_message)
+
+            # Remove the FileReceiver instance as it's no longer needed
+            del self.files[filename]
 
     def send_acknowledgment(self, message):
         """
@@ -215,35 +299,11 @@ class ClientHandler(threading.Thread):
         except Exception as e:
             print(f"[!] Failed to send acknowledgment to {self.client_address}: {e}")
 
-# Separate thread for displaying images
-class ImageDisplayThread(threading.Thread):
-    def __init__(self, image_queue, max_queue_size=10):
-        super().__init__(daemon=True)
-        self.image_queue = image_queue
-        self.max_queue_size = max_queue_size
-
-    def run(self):
-        while True:
-            try:
-                # Print the current queue size
-                print(f"[Queue Size]: {self.image_queue.qsize()}")
-
-                # Skip frames if the queue is too full
-                while self.image_queue.qsize() > self.max_queue_size:
-                    self.image_queue.get()
-
-                image = self.image_queue.get(timeout=1)  # Get image from the queue
-                print(f"[Debug] Retrieved image from queue for display")
-                cv2.imshow('Incoming Video Stream', image)
-                cv2.waitKey(1)  # Display the image for 1 ms
-            except queue.Empty:
-                continue
-
 # =========================
 # Server Setup and Execution
 # =========================
 
-def start_server():
+def start_server(image_publisher, pointcloud_publisher):
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -252,15 +312,10 @@ def start_server():
     server_socket.listen(5)
     print(f"[*] Server listening on {SERVER_HOST}:{SERVER_PORT}")
 
-    image_queue = queue.Queue()  # Create a queue for images
-    image_display_thread = ImageDisplayThread(image_queue)  # Start the image display thread
-    image_display_thread.start()
-
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr)
-            handler.image_queue = image_queue  # Pass the queue to the client handler
+            handler = ClientHandler(client_sock, client_addr, image_publisher, pointcloud_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -268,12 +323,23 @@ def start_server():
         print(f"[!] Server error: {e}")
     finally:
         server_socket.close()
-        cv2.destroyAllWindows()  # Ensure OpenCV windows are closed properly
+
+def main():
+    rclpy.init()
+    image_publisher = ImagePublisher()
+    pointcloud_publisher = PointCloudPublisher()
+
+    server_thread = threading.Thread(target=start_server, args=(image_publisher, pointcloud_publisher), daemon=True)
+    server_thread.start()
+
+    try:
+        rclpy.spin(pointcloud_publisher)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        image_publisher.destroy_node()
+        pointcloud_publisher.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
-    try:
-        start_server()
-    except Exception as e:
-        print(f"[!] Error: {e}")
-    finally:
-        cv2.destroyAllWindows()  # Ensure OpenCV windows are closed properly
+    main()
