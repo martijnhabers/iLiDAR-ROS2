@@ -9,6 +9,9 @@ import socket
 import threading
 import struct
 import os
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage
 
 # =========================
 # Configuration Parameters
@@ -76,16 +79,30 @@ class FileReceiver:
         sorted_chunks = [self.chunks[seq] for seq in sorted(self.chunks.keys())]
         return b''.join(sorted_chunks)
 
+class ImagePublisher(Node):
+    def __init__(self):
+        super().__init__('image_publisher')
+        self.publisher_ = self.create_publisher(CompressedImage, '/color_image', 10)
+
+    def publish_jpeg(self, jpeg_data, frame_id='color_image'):
+        msg = CompressedImage()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = frame_id
+        msg.format = 'jpeg'
+        msg.data = jpeg_data
+        self.publisher_.publish(msg)
+
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address):
+    def __init__(self, client_socket, client_address, image_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
         self.buffer = b''  # Buffer to store incoming data
         self.files = {}     # Maps filename to FileReceiver instances
+        self.image_publisher = image_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -189,20 +206,14 @@ class ClientHandler(threading.Thread):
         # Check if the file is fully received
         if file_receiver.is_complete():
             complete_data = file_receiver.reconstruct_file()
-            extension = DATA_TYPE_EXTENSION.get(file_receiver.data_type, '')
-            safe_filename = os.path.basename(filename)  # Prevent directory traversal
-            save_path = os.path.join(SAVE_DIRECTORY, safe_filename)
-
-            try:
-                with open(save_path, 'wb') as f:
-                    f.write(complete_data)
-                print(f"[+] File saved: {save_path}")
-            except Exception as e:
-                print(f"[!] Failed to save file {save_path}: {e}")
-                return
-
-            # Optionally, send acknowledgment back to the client
-            ack_message = f"File '{filename}' received and saved successfully."
+            if file_receiver.data_type == DATA_TYPE_JPEG:
+                # Publish JPEG to ROS 2 topic
+                self.image_publisher.publish_jpeg(complete_data)
+                print(f"[+] JPEG published to /color_image")
+            else:
+                # Optionally handle other types as before, or ignore
+                pass
+            ack_message = f"File '{filename}' received and processed successfully."
             self.send_acknowledgment(ack_message)
 
             # Remove the FileReceiver instance as it's no longer needed
@@ -222,7 +233,7 @@ class ClientHandler(threading.Thread):
 # Server Setup and Execution
 # =========================
 
-def start_server():
+def start_server(image_publisher):
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -234,7 +245,7 @@ def start_server():
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr)
+            handler = ClientHandler(client_sock, client_addr, image_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -243,5 +254,18 @@ def start_server():
     finally:
         server_socket.close()
 
+def main():
+    rclpy.init()
+    image_publisher = ImagePublisher()
+    server_thread = threading.Thread(target=start_server, args=(image_publisher,), daemon=True)
+    server_thread.start()
+    try:
+        rclpy.spin(image_publisher)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        image_publisher.destroy_node()
+        rclpy.shutdown()
+
 if __name__ == '__main__':
-    start_server()
+    main()
