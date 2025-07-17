@@ -12,6 +12,7 @@ import os
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Imu
 
 # =========================
 # Configuration Parameters
@@ -79,30 +80,49 @@ class FileReceiver:
         sorted_chunks = [self.chunks[seq] for seq in sorted(self.chunks.keys())]
         return b''.join(sorted_chunks)
 
-class ImagePublisher(Node):
+class iOSDataPublisher(Node):
     def __init__(self):
-        super().__init__('image_publisher')
-        self.publisher_ = self.create_publisher(CompressedImage, '/color_image', 10)
+        super().__init__('ios_data_publisher')
+        self.img_publisher_ = self.create_publisher(CompressedImage, '/color_image', 10)
+        self.imu_publisher_ = self.create_publisher(Imu, '/imu', 10)
 
-    def publish_jpeg(self, jpeg_data, frame_id='color_image'):
+    def x(self, jpeg_data, frame_id='color_image'):
         msg = CompressedImage()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = frame_id
         msg.format = 'jpeg'
         msg.data = jpeg_data
-        self.publisher_.publish(msg)
+        self.img_publisher_.publish(msg)
+
+    def publish_imu(self, imu_data):
+        msg = Imu()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "imu"
+        msg.orientation.x = 0.0
+        msg.orientation.y = 0.0
+        msg.orientation.z = 0.0
+        msg.orientation.w = 0.0
+
+        msg.angular_velocity.x = 0.0
+        msg.angular_velocity.y = 0.0
+        msg.angular_velocity.z = 0.0
+
+        msg.linear_acceleration.x = 0.0
+        msg.linear_acceleration.y = 0.0
+        msg.linear_acceleration.z = 0.0
+        self.imu_publisher_.publish(msg)
 
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address, image_publisher):
+    def __init__(self, client_socket, client_address, ios_data_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
         self.buffer = b''  # Buffer to store incoming data
         self.files = {}     # Maps filename to FileReceiver instances
-        self.image_publisher = image_publisher
+        self.ios_data_publisher = ios_data_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -208,8 +228,20 @@ class ClientHandler(threading.Thread):
             complete_data = file_receiver.reconstruct_file()
             if file_receiver.data_type == DATA_TYPE_JPEG:
                 # Publish JPEG to ROS 2 topic
-                self.image_publisher.publish_jpeg(complete_data)
+                self.ios_data_publisher.publish_jpeg(complete_data)
                 print(f"[+] JPEG published to /color_image")
+            elif file_receiver.data_type == DATA_TYPE_CSV:
+                self.ios_data_publisher.publish_imu(complete_data)
+                # Debugging: print IMU CSV data
+                print(f"[DEBUG] IMU CSV file received: {filename}")
+                try:
+                    csv_text = complete_data.decode('utf-8', errors='replace')
+                    lines = csv_text.splitlines()
+                    print(f"[DEBUG] First 5 lines of IMU CSV data:")
+                    for line in lines[:5]:
+                        print(f"    {line}")
+                except Exception as e:
+                    print(f"[DEBUG] Failed to decode IMU CSV data: {e}")
             else:
                 # Optionally handle other types as before, or ignore
                 pass
@@ -233,7 +265,7 @@ class ClientHandler(threading.Thread):
 # Server Setup and Execution
 # =========================
 
-def start_server(image_publisher):
+def start_server(ios_data_publisher):
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -245,7 +277,7 @@ def start_server(image_publisher):
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr, image_publisher)
+            handler = ClientHandler(client_sock, client_addr, ios_data_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -256,15 +288,15 @@ def start_server(image_publisher):
 
 def main():
     rclpy.init()
-    image_publisher = ImagePublisher()
-    server_thread = threading.Thread(target=start_server, args=(image_publisher,), daemon=True)
+    ios_data_publisher = iOSDataPublisher()
+    server_thread = threading.Thread(target=start_server, args=(ios_data_publisher,), daemon=True)
     server_thread.start()
     try:
-        rclpy.spin(image_publisher)
+        rclpy.spin(ios_data_publisher)
     except KeyboardInterrupt:
         pass
     finally:
-        image_publisher.destroy_node()
+        ios_data_publisher.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
