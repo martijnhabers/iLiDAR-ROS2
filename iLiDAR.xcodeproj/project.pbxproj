@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		106C98E32E28E56C009B7649 /* IMUManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106C98E22E28E56C009B7649 /* IMUManager.swift */; };
+		10D860462E041C1200EB131B /* CameraCapturedData+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */; };
+		10D860472E041C1200EB131B /* MockCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860452E041C1200EB131B /* MockCameraController.swift */; };
+		10D860482E041C1200EB131B /* CameraControllerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860442E041C1200EB131B /* CameraControllerProtocol.swift */; };
+		10D860502E056E7200EB131B /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604B2E056E7200EB131B /* Enums.swift */; };
+		10D860512E056E7200EB131B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604C2E056E7200EB131B /* MainTabView.swift */; };
+		10D860522E056E7200EB131B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604D2E056E7200EB131B /* SettingsView.swift */; };
+		10D860532E056E7200EB131B /* SliderDepthBoundaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */; };
+		10D860542E056E7200EB131B /* UnifiedButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604F2E056E7200EB131B /* UnifiedButtonStyle.swift */; };
+		10D860562E0571E300EB131B /* test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860552E0571E000EB131B /* test.swift */; };
+		10D860582E0573D300EB131B /* CameraPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860572E0573D300EB131B /* CameraPickerView.swift */; };
 		6D2845352D05349300BE4446 /* CocoaAsyncSocketHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6D2845332D05349300BE4446 /* CocoaAsyncSocketHandler.m */; };
 		6D2845362D05349300BE4446 /* SocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2845342D05349300BE4446 /* SocketManager.swift */; };
 		6DA885A22D02BC0B0019948C /* DataStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA8859E2D02BC0B0019948C /* DataStorage.swift */; };
@@ -34,6 +45,17 @@
 
 /* Begin PBXFileReference section */
 		0C34ECABC9005D93C0DF4297 /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		106C98E22E28E56C009B7649 /* IMUManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMUManager.swift; sourceTree = "<group>"; };
+		10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CameraCapturedData+Mock.swift"; sourceTree = "<group>"; };
+		10D860442E041C1200EB131B /* CameraControllerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControllerProtocol.swift; sourceTree = "<group>"; };
+		10D860452E041C1200EB131B /* MockCameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCameraController.swift; sourceTree = "<group>"; };
+		10D8604B2E056E7200EB131B /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		10D8604C2E056E7200EB131B /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		10D8604D2E056E7200EB131B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderDepthBoundaryView.swift; sourceTree = "<group>"; };
+		10D8604F2E056E7200EB131B /* UnifiedButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedButtonStyle.swift; sourceTree = "<group>"; };
+		10D860552E0571E000EB131B /* test.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = test.swift; sourceTree = "<group>"; };
+		10D860572E0573D300EB131B /* CameraPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPickerView.swift; sourceTree = "<group>"; };
 		1B199E7825E205895A37B6BB /* Pods-LiDARDepth.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LiDARDepth.release.xcconfig"; path = "Target Support Files/Pods-LiDARDepth/Pods-LiDARDepth.release.xcconfig"; sourceTree = "<group>"; };
 		4AD28C97F9E7744D64FEA8BB /* libPods-LiDARDepth.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-LiDARDepth.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D2845322D05349300BE4446 /* CocoaAsyncSocketHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CocoaAsyncSocketHandler.h; sourceTree = "<group>"; };
@@ -177,6 +199,13 @@
 		AEC8871B272EB01200ED6FCC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				10D860572E0573D300EB131B /* CameraPickerView.swift */,
+				10D860552E0571E000EB131B /* test.swift */,
+				10D8604B2E056E7200EB131B /* Enums.swift */,
+				10D8604C2E056E7200EB131B /* MainTabView.swift */,
+				10D8604D2E056E7200EB131B /* SettingsView.swift */,
+				10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */,
+				10D8604F2E056E7200EB131B /* UnifiedButtonStyle.swift */,
 				AE921D2B270D7B02000E95C6 /* ContentView.swift */,
 				AEE83E8F2743EFE800790BF9 /* DepthOverlay.swift */,
 				AEC8871C272ED13C00ED6FCC /* ZoomOnTap.swift */,
@@ -205,6 +234,10 @@
 		C444DFC327C43447000D8883 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				106C98E22E28E56C009B7649 /* IMUManager.swift */,
+				10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */,
+				10D860442E041C1200EB131B /* CameraControllerProtocol.swift */,
+				10D860452E041C1200EB131B /* MockCameraController.swift */,
 				AED300A4271D6D18008F6007 /* CameraManager.swift */,
 				AEAC8EBC27291512001CC1D5 /* CVPixelBuffer+Extension.swift */,
 			);
@@ -323,19 +356,30 @@
 				AE9AD789270ECC86001218B2 /* shaders.metal in Sources */,
 				AE2C81C62739620E001BDCC7 /* MetalTextureViewColor.swift in Sources */,
 				AED0C8F52753C969006E3F11 /* MetalPointCloud.swift in Sources */,
+				10D860582E0573D300EB131B /* CameraPickerView.swift in Sources */,
 				6D2845352D05349300BE4446 /* CocoaAsyncSocketHandler.m in Sources */,
 				6D2845362D05349300BE4446 /* SocketManager.swift in Sources */,
 				AE2C81C1273818FF001BDCC7 /* MetalTextureColorZap.swift in Sources */,
 				AE5D416F2756041300B2513E /* MetalEnvironment.swift in Sources */,
 				6DA885A22D02BC0B0019948C /* DataStorage.swift in Sources */,
+				10D860562E0571E300EB131B /* test.swift in Sources */,
 				AE8A362E27313F9C000B43A7 /* MetalContentView.swift in Sources */,
 				AE2C81C427396203001BDCC7 /* MetalTextureColorThresholdDepth.swift in Sources */,
+				10D860462E041C1200EB131B /* CameraCapturedData+Mock.swift in Sources */,
+				10D860472E041C1200EB131B /* MockCameraController.swift in Sources */,
+				10D860482E041C1200EB131B /* CameraControllerProtocol.swift in Sources */,
 				AEE83E902743EFE900790BF9 /* DepthOverlay.swift in Sources */,
 				AE2C81C927396765001BDCC7 /* View+Extensions.swift in Sources */,
 				AEC8871D272ED13C00ED6FCC /* ZoomOnTap.swift in Sources */,
 				AE2C81C52739620A001BDCC7 /* MetalTextureViewDepth.swift in Sources */,
 				AE921D2C270D7B02000E95C6 /* ContentView.swift in Sources */,
 				AED300A5271D6D18008F6007 /* CameraManager.swift in Sources */,
+				10D860502E056E7200EB131B /* Enums.swift in Sources */,
+				106C98E32E28E56C009B7649 /* IMUManager.swift in Sources */,
+				10D860512E056E7200EB131B /* MainTabView.swift in Sources */,
+				10D860522E056E7200EB131B /* SettingsView.swift in Sources */,
+				10D860532E056E7200EB131B /* SliderDepthBoundaryView.swift in Sources */,
+				10D860542E056E7200EB131B /* UnifiedButtonStyle.swift in Sources */,
 				AE2C81C3273961FF001BDCC7 /* MetalTextureView.swift in Sources */,
 				AE921D2A270D7B02000E95C6 /* iLiDARAPP.swift in Sources */,
 			);

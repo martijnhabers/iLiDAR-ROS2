@@ -20,17 +20,24 @@ class DataStorage {
     private(set) var currentPort = 5678
     
     init() {
+        // Load from UserDefaults if available
+        if let savedIP = UserDefaults.standard.string(forKey: "currentHostIP") {
+            currentHostIP = savedIP
+        }
+        if UserDefaults.standard.object(forKey: "currentPort") != nil {
+            currentPort = UserDefaults.standard.integer(forKey: "currentPort")
+        }
         socketManager.connectToServer(host_ip: currentHostIP, port: currentPort) { success in
-                    if success {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            self.readyToSend = true
-                            print("Initial connection established, ready to send.")
-                        }
-                    } else {
-                        self.readyToSend = false
-                        print("Initial connection failed to \(self.currentHostIP):\(self.currentPort)")
-                    }
+            if success {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.readyToSend = true
+                    print("Initial connection established, ready to send.")
                 }
+            } else {
+                self.readyToSend = false
+                print("Initial connection failed to \(self.currentHostIP):\(self.currentPort)")
+            }
+        }
     }
     
     func disconnect() {
@@ -47,6 +54,9 @@ class DataStorage {
         // Update current IP and port
         currentHostIP = host_ip
         currentPort = port
+        // Save to UserDefaults
+        UserDefaults.standard.set(host_ip, forKey: "currentHostIP")
+        UserDefaults.standard.set(port, forKey: "currentPort")
         
         var completionCalled = false
         
@@ -163,7 +173,7 @@ class DataStorage {
         }
         
         let intrinsicMatrix = calibrationData.intrinsicMatrix
-        print(intrinsicMatrix)
+    print(intrinsicMatrix)
         let fx = intrinsicMatrix.columns.0.x
         let fy = intrinsicMatrix.columns.1.y
         let cx = intrinsicMatrix.columns.2.x
