@@ -13,6 +13,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Imu
+import sensor_pb2
 
 # =========================
 # Configuration Parameters
@@ -95,21 +96,26 @@ class iOSDataPublisher(Node):
         self.img_publisher_.publish(msg)
 
     def publish_imu(self, imu_data):
+
         msg = Imu()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "imu"
-        msg.orientation.x = 0.0
-        msg.orientation.y = 0.0
-        msg.orientation.z = 0.0
-        msg.orientation.w = 0.0
+        secs = imu_data.timestamp // 1_000_000_000
+        nsecs = imu_data.timestamp % 1_000_000_000
+        msg.header.stamp.sec = secs
+        msg.header.stamp.nanosec = nsecs
 
-        msg.angular_velocity.x = 0.0
-        msg.angular_velocity.y = 0.0
-        msg.angular_velocity.z = 0.0
+        msg.header.frame_id = imu_data.frame_id
+        msg.orientation.x = imu_data.orientation.x
+        msg.orientation.y = imu_data.orientation.y
+        msg.orientation.z = imu_data.orientation.z
+        msg.orientation.w = imu_data.orientation.w
 
-        msg.linear_acceleration.x = 0.0
-        msg.linear_acceleration.y = 0.0
-        msg.linear_acceleration.z = 0.0
+        msg.angular_velocity.x = imu_data.gyro.x
+        msg.angular_velocity.y = imu_data.gyro.y
+        msg.angular_velocity.z = imu_data.gyro.z
+
+        msg.linear_acceleration.x = imu_data.accel.x
+        msg.linear_acceleration.y = imu_data.accel.y
+        msg.linear_acceleration.z = imu_data.accel.z
         self.imu_publisher_.publish(msg)
 
 class ClientHandler(threading.Thread):
@@ -242,6 +248,22 @@ class ClientHandler(threading.Thread):
                         print(f"    {line}")
                 except Exception as e:
                     print(f"[DEBUG] Failed to decode IMU CSV data: {e}")
+            elif file_receiver.data_type == DATA_TYPE_BIN:
+                # Decode Protobuf binary data
+                try:
+                    sensor_msg = sensor_pb2.SensorMessage()
+                    sensor_msg.ParseFromString(complete_data)
+                    print(f"[PROTOBUF] Decoded Sensor_SensorMessage: {sensor_msg}")
+                    # Example: check which field is set and process accordingly
+                    if sensor_msg.HasField('imu'):
+                        print(f"[PROTOBUF] IMU data: {sensor_msg.imu}")
+                        self.ios_data_publisher.publish_imu(sensor_msg.imu)
+                    if sensor_msg.HasField('camera'):
+                        print(f"[PROTOBUF] Camera data: {sensor_msg.camera}")
+                    if sensor_msg.HasField('depth'):
+                        print(f"[PROTOBUF] Depth data: {sensor_msg.depth}")
+                except Exception as e:
+                    print(f"[PROTOBUF] Failed to decode protobuf message: {e}")
             else:
                 # Optionally handle other types as before, or ignore
                 pass

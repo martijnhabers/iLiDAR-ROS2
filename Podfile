@@ -5,6 +5,7 @@ target 'iLiDAR' do
   pod 'CocoaAsyncSocket'
   pod 'AFNetworking'
   pod 'ReactiveCocoa', '~> 11.0'
+  pod 'SwiftProtobuf', '~> 1.0'
   source 'https://github.com/CocoaPods/Specs.git'
   
 end

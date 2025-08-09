@@ -18,11 +18,13 @@ PODS:
   - ReactiveCocoa (11.2.2):
     - ReactiveSwift (~> 6.6)
   - ReactiveSwift (6.7.0)
+  - SwiftProtobuf (1.30.0)
 
 DEPENDENCIES:
   - AFNetworking
   - CocoaAsyncSocket
   - ReactiveCocoa (~> 11.0)
+  - SwiftProtobuf (~> 1.0)
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
@@ -30,13 +32,15 @@ SPEC REPOS:
     - CocoaAsyncSocket
     - ReactiveCocoa
     - ReactiveSwift
+    - SwiftProtobuf
 
 SPEC CHECKSUMS:
   AFNetworking: 3bd23d814e976cd148d7d44c3ab78017b744cd58
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   ReactiveCocoa: e539cd41c523c8c80851b88e9723235c933b024b
   ReactiveSwift: 208201d6ecc9734196d147aa76bc1f24b1b821fe
+  SwiftProtobuf: 3697407f0d5b23bedeba9c2eaaf3ec6fdff69349
 
-PODFILE CHECKSUM: b9282949407a27329e07b26c49b81530196c5546
+PODFILE CHECKSUM: bc3ea1f57e89b2895da84bd394c8c98a48fc8d98
 
 COCOAPODS: 1.16.2

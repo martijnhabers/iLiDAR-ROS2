@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package sensor;
+
+// 3D vector for IMU and other sensors
+message Vector3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+// Quaternion for orientation representation
+message Quaternion {
+  float x = 1;  // x component
+  float y = 2;  // y component
+  float z = 3;  // z component
+  float w = 4;  // w component (scalar part)
+}
+
+// IMU data message
+message IMUData {
+  uint64 timestamp = 1;  // nanoseconds since epoch
+  Vector3 accel = 2;     // acceleration (m/s^2)
+  Vector3 gyro = 3;      // angular velocity (rad/s)
+  Quaternion orientation = 4;       // orientation as a quaternion (x, y, z, w)
+  string frame_id = 5;   // e.g., "imu_link"
+}
+
+// Camera image message
+message CameraData {
+  uint64 timestamp = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  string encoding = 4;     // e.g., "jpeg", "rgb8", "bgr8"
+  bytes image_data = 5;    // raw or compressed image
+  string frame_id = 6;     // e.g., "camera_link"
+}
+
+// Depth image message
+message DepthImage {
+  uint64 timestamp = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  string encoding = 4;     // e.g., "16UC1", "32FC1"
+  bytes depth_data = 5;    // raw depth image data (row-major)
+  string frame_id = 6;
+}
+
+// Envelope for all sensor messages
+message SensorMessage {
+  oneof sensor_data {
+    IMUData imu = 1;
+    CameraData camera = 2;
+    DepthImage depth = 3;
+  }
+} 

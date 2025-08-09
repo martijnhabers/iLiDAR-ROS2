@@ -87,8 +87,8 @@ struct ContentView: View {
                         manager.controller.startStream()
                     }
                     if imuEnabled {
-                        imuManager.startDummyStreaming(frequency: imuFrequency)
-                        print("start dummy stream from button side")
+                        imuManager.startStreaming(frequency: imuFrequency)
+                        print("start IMU stream from button")
                     }
                 }
                 isRunning.toggle()
