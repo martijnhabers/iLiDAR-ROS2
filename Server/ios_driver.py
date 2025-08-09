@@ -9,9 +9,10 @@ import socket
 import threading
 import struct
 import os
-import cv2  # Import OpenCV
-import numpy as np
-import queue  # Import queue for thread-safe communication
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Imu
 
 # =========================
 # Configuration Parameters
@@ -79,17 +80,49 @@ class FileReceiver:
         sorted_chunks = [self.chunks[seq] for seq in sorted(self.chunks.keys())]
         return b''.join(sorted_chunks)
 
+class iOSDataPublisher(Node):
+    def __init__(self):
+        super().__init__('ios_data_publisher')
+        self.img_publisher_ = self.create_publisher(CompressedImage, '/color_image', 10)
+        self.imu_publisher_ = self.create_publisher(Imu, '/imu', 10)
+
+    def x(self, jpeg_data, frame_id='color_image'):
+        msg = CompressedImage()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = frame_id
+        msg.format = 'jpeg'
+        msg.data = jpeg_data
+        self.img_publisher_.publish(msg)
+
+    def publish_imu(self, imu_data):
+        msg = Imu()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "imu"
+        msg.orientation.x = 0.0
+        msg.orientation.y = 0.0
+        msg.orientation.z = 0.0
+        msg.orientation.w = 0.0
+
+        msg.angular_velocity.x = 0.0
+        msg.angular_velocity.y = 0.0
+        msg.angular_velocity.z = 0.0
+
+        msg.linear_acceleration.x = 0.0
+        msg.linear_acceleration.y = 0.0
+        msg.linear_acceleration.z = 0.0
+        self.imu_publisher_.publish(msg)
+
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address):
+    def __init__(self, client_socket, client_address, ios_data_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
         self.buffer = b''  # Buffer to store incoming data
         self.files = {}     # Maps filename to FileReceiver instances
-        self.image_queue = queue.Queue()  # Queue for storing images to be displayed
+        self.ios_data_publisher = ios_data_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -177,8 +210,8 @@ class ClientHandler(threading.Thread):
         # Map data type to string for logging
         data_type_str = DATA_TYPE_EXTENSION.get(data_type, f'Unknown({data_type})')
 
-        # print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
-        #       f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
+        print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
+              f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
 
         # Initialize FileReceiver if it's the first chunk of the file
         if filename not in self.files:
@@ -193,17 +226,30 @@ class ClientHandler(threading.Thread):
         # Check if the file is fully received
         if file_receiver.is_complete():
             complete_data = file_receiver.reconstruct_file()
-            extension = DATA_TYPE_EXTENSION.get(file_receiver.data_type, '')
+            if file_receiver.data_type == DATA_TYPE_JPEG:
+                # Publish JPEG to ROS 2 topic
+                self.ios_data_publisher.publish_jpeg(complete_data)
+                print(f"[+] JPEG published to /color_image")
+            elif file_receiver.data_type == DATA_TYPE_CSV:
+                self.ios_data_publisher.publish_imu(complete_data)
+                # Debugging: print IMU CSV data
+                print(f"[DEBUG] IMU CSV file received: {filename}")
+                try:
+                    csv_text = complete_data.decode('utf-8', errors='replace')
+                    lines = csv_text.splitlines()
+                    print(f"[DEBUG] First 5 lines of IMU CSV data:")
+                    for line in lines[:5]:
+                        print(f"    {line}")
+                except Exception as e:
+                    print(f"[DEBUG] Failed to decode IMU CSV data: {e}")
+            else:
+                # Optionally handle other types as before, or ignore
+                pass
+            ack_message = f"File '{filename}' received and processed successfully."
+            self.send_acknowledgment(ack_message)
 
-            if extension == '.jpg':
-                image = cv2.imdecode(np.frombuffer(complete_data, np.uint8), cv2.IMREAD_COLOR)
-                if image is not None:
-                    print(f"[Debug] Image decoded successfully for {filename}")
-                    self.image_queue.put(image)  # Add image to the queue
-                else:
-                    print(f"[!] Failed to decode image {filename}")
-
-
+            # Remove the FileReceiver instance as it's no longer needed
+            del self.files[filename]
 
     def send_acknowledgment(self, message):
         """
@@ -215,35 +261,11 @@ class ClientHandler(threading.Thread):
         except Exception as e:
             print(f"[!] Failed to send acknowledgment to {self.client_address}: {e}")
 
-# Separate thread for displaying images
-class ImageDisplayThread(threading.Thread):
-    def __init__(self, image_queue, max_queue_size=10):
-        super().__init__(daemon=True)
-        self.image_queue = image_queue
-        self.max_queue_size = max_queue_size
-
-    def run(self):
-        while True:
-            try:
-                # Print the current queue size
-                print(f"[Queue Size]: {self.image_queue.qsize()}")
-
-                # Skip frames if the queue is too full
-                while self.image_queue.qsize() > self.max_queue_size:
-                    self.image_queue.get()
-
-                image = self.image_queue.get(timeout=1)  # Get image from the queue
-                print(f"[Debug] Retrieved image from queue for display")
-                cv2.imshow('Incoming Video Stream', image)
-                cv2.waitKey(1)  # Display the image for 1 ms
-            except queue.Empty:
-                continue
-
 # =========================
 # Server Setup and Execution
 # =========================
 
-def start_server():
+def start_server(ios_data_publisher):
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -252,15 +274,10 @@ def start_server():
     server_socket.listen(5)
     print(f"[*] Server listening on {SERVER_HOST}:{SERVER_PORT}")
 
-    image_queue = queue.Queue()  # Create a queue for images
-    image_display_thread = ImageDisplayThread(image_queue)  # Start the image display thread
-    image_display_thread.start()
-
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr)
-            handler.image_queue = image_queue  # Pass the queue to the client handler
+            handler = ClientHandler(client_sock, client_addr, ios_data_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -268,12 +285,19 @@ def start_server():
         print(f"[!] Server error: {e}")
     finally:
         server_socket.close()
-        cv2.destroyAllWindows()  # Ensure OpenCV windows are closed properly
+
+def main():
+    rclpy.init()
+    ios_data_publisher = iOSDataPublisher()
+    server_thread = threading.Thread(target=start_server, args=(ios_data_publisher,), daemon=True)
+    server_thread.start()
+    try:
+        rclpy.spin(ios_data_publisher)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ios_data_publisher.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
-    try:
-        start_server()
-    except Exception as e:
-        print(f"[!] Error: {e}")
-    finally:
-        cv2.destroyAllWindows()  # Ensure OpenCV windows are closed properly
+    main()

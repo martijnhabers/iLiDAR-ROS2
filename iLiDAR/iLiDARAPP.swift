@@ -13,7 +13,7 @@ import SwiftUI
 struct iLiDARAPP: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 An object that connects the camera controller and the views.
@@ -12,6 +12,12 @@ import SwiftUI
 import Combine
 import simd
 import AVFoundation
+
+#if targetEnvironment(simulator)
+typealias AppCameraController = MockCameraController
+#else
+typealias AppCameraController = CameraController
+#endif
 
 class CameraManager: ObservableObject, CaptureDataReceiver {
 
@@ -29,14 +35,14 @@ class CameraManager: ObservableObject, CaptureDataReceiver {
     @Published var enableNetworkTransfer: Bool = false
     @Published var eventName: String = ""
     
-    let controller: CameraController
+    let controller: AppCameraController
     var cancellables = Set<AnyCancellable>()
-    var session: AVCaptureSession { controller.captureSession }
+    var session: AVCaptureSession? { controller.captureSession }
     
     init() {
         // Create an object to store the captured data for the views to present.
         capturedData = CameraCapturedData()
-        controller = CameraController()
+        controller = AppCameraController()
         controller.isFilteringEnabled = true
         controller.startStream()
         isFilteringDepth = controller.isFilteringEnabled
@@ -44,11 +50,11 @@ class CameraManager: ObservableObject, CaptureDataReceiver {
         enableNetworkTransfer = controller.enableNetworkTransfer
         controller.$enableNetworkTransfer
             .receive(on: DispatchQueue.main)
-            .assign(to: \.enableNetworkTransfer, on:self)
+            .assign(to: \CameraManager.enableNetworkTransfer, on: self)
             .store(in: &cancellables)
         controller.$eventName
             .receive(on: DispatchQueue.main)
-            .assign(to: \.eventName, on: self)
+            .assign(to: \CameraManager.eventName, on: self)
             .store(in: &cancellables)
         
         NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification).sink { _ in
@@ -122,3 +128,13 @@ class CameraCapturedData {
         self.cameraReferenceDimensions = cameraReferenceDimensions
     }
 }
+
+// Typealias for default usage with the real CameraController
+// typealias DefaultCameraManager = CameraManager<CameraController>
+//
+// Example instantiation:
+// #if targetEnvironment(simulator)
+// let manager = CameraManager(controller: MockCameraController())
+// #else
+// let manager = CameraManager(controller: CameraController())
+// #endif

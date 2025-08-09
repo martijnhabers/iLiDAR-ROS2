@@ -1,5 +1,5 @@
 /*
-See the LICENSE.txt file for this sample’s licensing information.
+See the LICENSE.txt file for this sample's licensing information.
 
 Abstract:
 An object that configures and manages the capture pipeline to stream video and LiDAR depth data.
@@ -16,7 +16,7 @@ protocol CaptureDataReceiver: AnyObject {
     func onNewPhotoData(capturedData: CameraCapturedData)
 }
 
-class CameraController: NSObject, ObservableObject {
+class CameraController: NSObject, ObservableObject, CameraControllerProtocol {
     
     enum ConfigurationError: Error {
         case lidarDeviceUnavailable
@@ -26,14 +26,15 @@ class CameraController: NSObject, ObservableObject {
     @Published var enableNetworkTransfer: Bool = false
     @Published var eventName: String = ""
     
-    private let preferredWidthResolution = 1920
+    private let preferredWidthResolution = 640
     private var frameCounter = 0
    
     private var isConfigTransmitted = false
     
     private let videoQueue = DispatchQueue(label: "com.example.apple-samplecode.VideoQueue", qos: .userInteractive)
     
-    private(set) var captureSession: AVCaptureSession!
+    private var _captureSession: AVCaptureSession!
+    var captureSession: AVCaptureSession? { _captureSession }
     
     private var photoOutput: AVCapturePhotoOutput!
     private var depthDataOutput: AVCaptureDepthDataOutput!
@@ -75,17 +76,17 @@ class CameraController: NSObject, ObservableObject {
     }
     
     private func setupSession() throws {
-        captureSession = AVCaptureSession()
-        captureSession.sessionPreset = .inputPriority
+        _captureSession = AVCaptureSession()
+        _captureSession.sessionPreset = .inputPriority
 
         // Configure the capture session.
-        captureSession.beginConfiguration()
+        _captureSession.beginConfiguration()
         
         try setupCaptureInput()
         setupCaptureOutputs()
         
         // Finalize the capture session configuration.
-        captureSession.commitConfiguration()
+        _captureSession.commitConfiguration()
     }
     
     private func setupCaptureInput() throws {
@@ -126,44 +127,44 @@ class CameraController: NSObject, ObservableObject {
         
         // Add a device input to the capture session.
         let deviceInput = try AVCaptureDeviceInput(device: device)
-        captureSession.addInput(deviceInput)
+        _captureSession.addInput(deviceInput)
     }
     
     private func setupCaptureOutputs() {
         // Create an object to output video sample buffers.
         videoDataOutput = AVCaptureVideoDataOutput()
-        captureSession.addOutput(videoDataOutput)
+        _captureSession.addOutput(videoDataOutput)
         
         // Create an object to output depth data.
         depthDataOutput = AVCaptureDepthDataOutput()
         depthDataOutput.isFilteringEnabled = isFilteringEnabled
-        captureSession.addOutput(depthDataOutput)
+        _captureSession.addOutput(depthDataOutput)
 
         // Create an object to synchronize the delivery of depth and video data.
         outputVideoSync = AVCaptureDataOutputSynchronizer(dataOutputs: [depthDataOutput, videoDataOutput])
         outputVideoSync.setDelegate(self, queue: videoQueue)
 
         // Enable camera intrinsics matrix delivery.
-        guard let outputConnection = videoDataOutput.connection(with: .video) else { return }
-        if outputConnection.isCameraIntrinsicMatrixDeliverySupported {
-            outputConnection.isCameraIntrinsicMatrixDeliveryEnabled = true
+        let outputConnection = videoDataOutput.connection(with: .video)
+        if outputConnection?.isCameraIntrinsicMatrixDeliverySupported == true {
+            outputConnection?.isCameraIntrinsicMatrixDeliveryEnabled = true
         }
         
         // Create an object to output photos.
         photoOutput = AVCapturePhotoOutput()
         photoOutput.maxPhotoQualityPrioritization = .quality
-        captureSession.addOutput(photoOutput)
+        _captureSession.addOutput(photoOutput)
 
         // Enable delivery of depth data after adding the output to the capture session.
         photoOutput.isDepthDataDeliveryEnabled = true
     }
     
     func startStream() {
-        captureSession.startRunning()
+        _captureSession.startRunning()
     }
     
     func stopStream() {
-        captureSession.stopRunning()
+        _captureSession.stopRunning()
     }
 }
 
