@@ -28,23 +28,6 @@ struct ContentView: View {
     }
     var body: some View {
         VStack(spacing: 10) {
-            ScrollView {
-                VStack {
-                    /*
-                    if manager.dataAvailable {
-                        ZoomOnTap {
-                            DepthOverlay(manager: manager,
-                                         maxDepth: $maxDepth,
-                                         minDepth: $minDepth
-                            )
-                            .aspectRatio(calcAspect(orientation: viewOrientation, texture: manager.capturedData.depth), contentMode: .fit)
-                        }
-                        .scaleEffect(0.9)
-                    }
-                    */
-                }
-                .padding()
-            }
             VStack(spacing: 16) {
                 Toggle(isOn: $imuEnabled) {
                     HStack {

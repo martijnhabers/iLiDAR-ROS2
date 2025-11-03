@@ -253,15 +253,6 @@ class ClientHandler(threading.Thread):
                 try:
                     sensor_msg = sensor_pb2.SensorMessage()
                     sensor_msg.ParseFromString(complete_data)
-                    print(f"[PROTOBUF] Decoded Sensor_SensorMessage: {sensor_msg}")
-                    # Example: check which field is set and process accordingly
-                    if sensor_msg.HasField('imu'):
-                        print(f"[PROTOBUF] IMU data: {sensor_msg.imu}")
-                        self.ios_data_publisher.publish_imu(sensor_msg.imu)
-                    if sensor_msg.HasField('camera'):
-                        print(f"[PROTOBUF] Camera data: {sensor_msg.camera}")
-                    if sensor_msg.HasField('depth'):
-                        print(f"[PROTOBUF] Depth data: {sensor_msg.depth}")
                 except Exception as e:
                     print(f"[PROTOBUF] Failed to decode protobuf message: {e}")
             else:
