@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 
 struct CameraSettingsView: View {
+    @ObservedObject var cameraManager: CameraManager
     @State private var selectedCameraUniqueID: String?
     @State private var previewEnabled: Bool = false
     @StateObject private var previewManager = CameraPreviewSessionManager()
@@ -18,12 +19,12 @@ struct CameraSettingsView: View {
         Form {
             Section(header: Text("Camera")) {
                 Picker("Camera", selection: $selectedCameraUniqueID) {
-                    ForEach(devices, id: \ .uniqueID) { device in
+                    ForEach(devices, id: \.uniqueID) { device in
                         Text(device.localizedName).tag(device.uniqueID as String?)
                     }
                 }
                 .onChange(of: selectedCameraUniqueID) { _ in
-                    reconfigureSession()
+                    // insert logic to handle a camera change
                 }
             }
             Section(header: Text("Preview")) {
@@ -32,41 +33,41 @@ struct CameraSettingsView: View {
                 }
                 .onChange(of: previewEnabled) { enabled in
                     if enabled {
-                        reconfigureSession()
+                        cameraManager.startSession()
                     } else {
-                        previewManager.stopSession()
+                        cameraManager.stopSession()
                     }
                 }
-                if previewEnabled, let session = previewManager.session {
-                    CameraPreviewView(session: session)
-                        .frame(height: 240)
-                        .cornerRadius(12)
-                        .padding(.top, 8)
-                        .onAppear {
-                            previewManager.startSession()
-                        }
-                        .onDisappear {
-                            previewManager.stopSession()
-                        }
-                }
+                // if previewEnabled, let session = previewManager.session {
+                //     CameraPreviewView(session: session)
+                //         .frame(height: 240)
+                //         .cornerRadius(12)
+                //         .padding(.top, 8)
+                //         .onAppear {
+                //             previewManager.startSession()
+                //         }
+                //         .onDisappear {
+                //             previewManager.stopSession()
+                //         }
+                // }
             }
         }
         .onAppear {
             selectedCameraUniqueID = devices.first?.uniqueID
-            reconfigureSession()
+            // reconfigureSession()
         }
         .onDisappear {
-            previewManager.stopSession()
+            cameraManager.stopSession()
         }
         .navigationTitle("Camera Settings")
     }
 
-    private func reconfigureSession() {
-        guard previewEnabled,
-              let uniqueID = selectedCameraUniqueID,
-              let device = devices.first(where: { $0.uniqueID == uniqueID }) else { return }
-        previewManager.configureSession(for: device)
-    }
+    // private func reconfigureSession() {
+    //     guard previewEnabled,
+    //           let uniqueID = selectedCameraUniqueID,
+    //           let device = devices.first(where: { $0.uniqueID == uniqueID }) else { return }
+    //     previewManager.configureSession(for: device)
+    // }
 
     private func cameraPositionString(_ position: AVCaptureDevice.Position) -> String {
         switch position {

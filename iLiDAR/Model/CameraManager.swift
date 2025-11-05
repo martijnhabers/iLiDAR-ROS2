@@ -1,140 +1,126 @@
-/*
-See the LICENSE.txt file for this sample's licensing information.
-
-Abstract:
-An object that connects the camera controller and the views.
-*/
-
-// Modified by Bo Liang in 2024.
-
-import Foundation
-import SwiftUI
-import Combine
-import simd
 import AVFoundation
+import Foundation
+import CoreImage
 
-#if targetEnvironment(simulator)
-typealias AppCameraController = MockCameraController
-#else
-typealias AppCameraController = CameraController
-#endif
+class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate {
+    @Published var resolution: CGSize = .zero
+    @Published var frameRate: Int = 0
+    @Published var isRunning: Bool = false
+    @Published var isStreaming: Bool = false
 
-class CameraManager: ObservableObject, CaptureDataReceiver {
+    @Published var depthEnabled: Bool = false
+    @Published var cameraEnabled: Bool = false
 
-    var capturedData: CameraCapturedData
-    @Published var isFilteringDepth: Bool {
-        didSet {
-            controller.isFilteringEnabled = isFilteringDepth
+    private var captureSession: AVCaptureSession?
+    // Store the selected AVCaptureDevice so other setup methods can access it
+    private var videoDevice: AVCaptureDevice?
+
+    override init() {
+        super.init()
+        setupCaptureSession()
+    }
+
+private func setupCaptureSession() {
+        captureSession = AVCaptureSession()
+        guard let captureSession = captureSession else { return }
+
+        captureSession.beginConfiguration()
+
+        setupCaptureInputs()
+        setupCaptureoutputs()
+
+        captureSession.commitConfiguration()
+    }
+
+    private func setupCaptureInputs() {
+        // Setup input device
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            print("Error: Unable to find a video device.")
+            return
         }
+
+        // Save to property so other methods (like setupCaptureSession) can read its format/frame rate
+        self.videoDevice = device
+
+        guard let videoInput = try? AVCaptureDeviceInput(device: device), captureSession?.canAddInput(videoInput) == true else {
+            print("Error: Unable to add video input.")
+            return
+        }
+
+        captureSession?.addInput(videoInput)
     }
-    @Published var orientation = UIDevice.current.orientation
-    @Published var waitingForCapture = false
-    @Published var processingCapturedResult = false
-    @Published var dataAvailable = false
-    
-    @Published var enableNetworkTransfer: Bool = false
-    @Published var eventName: String = ""
-    
-    let controller: AppCameraController
-    var cancellables = Set<AnyCancellable>()
-    var session: AVCaptureSession? { controller.captureSession }
-    
-    init() {
-        // Create an object to store the captured data for the views to present.
-        capturedData = CameraCapturedData()
-        controller = AppCameraController()
-        controller.isFilteringEnabled = true
-        controller.startStream()
-        isFilteringDepth = controller.isFilteringEnabled
-        
-        enableNetworkTransfer = controller.enableNetworkTransfer
-        controller.$enableNetworkTransfer
-            .receive(on: DispatchQueue.main)
-            .assign(to: \CameraManager.enableNetworkTransfer, on: self)
-            .store(in: &cancellables)
-        controller.$eventName
-            .receive(on: DispatchQueue.main)
-            .assign(to: \CameraManager.eventName, on: self)
-            .store(in: &cancellables)
-        
-        NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification).sink { _ in
-            self.orientation = UIDevice.current.orientation
-        }.store(in: &cancellables)
-        controller.delegate = self
+
+    private func setupCaptureoutputs() {
+        // Ensure captureSession is available
+        guard let captureSession = captureSession else {
+            print("Error: captureSession is not initialized.")
+            return
+        }
+         // Setup video output
+        let videoDataOutput = AVCaptureVideoDataOutput()
+        videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
+        guard captureSession.canAddOutput(videoDataOutput) else {
+            print("Error: Unable to add video output.")
+            return
+        }
+         captureSession.addOutput(videoDataOutput)
+
+         // Send camera intrinsics, if possible
+         let connection = videoDataOutput.connection(with: .video)
+         if connection?.isCameraIntrinsicMatrixDeliverySupported == true {
+             connection?.isCameraIntrinsicMatrixDeliveryEnabled = true
+         }
+
+         // Setup depth output
+         let depthDataOutput = AVCaptureDepthDataOutput()
+         depthDataOutput.setDelegate(self, callbackQueue: DispatchQueue(label: "depthQueue"))
+         if captureSession.canAddOutput(depthDataOutput) {
+             captureSession.addOutput(depthDataOutput)
+         }
+
+     }
+
+    func startSession() {
+        print("Starting camera session with these settings - Depth Enabled: \(depthEnabled), Camera Enabled: \(cameraEnabled) and this camera: \(String(describing: captureSession))")
+        captureSession?.startRunning()
+        isRunning = true
     }
-    
-    func toggleNetworkTransfer() {
-        controller.toggleNetworkTransfer()
+
+    func stopSession() {
+        print("Stopping camera session")
+        captureSession?.stopRunning()
+        isRunning = false
     }
-    
-    func startPhotoCapture() {
-        controller.capturePhoto()
-        waitingForCapture = true
+
+    func startStreaming() {
+        // Implement streaming logic here
+        isStreaming = true
     }
-    
-    func resumeStream() {
-        controller.startStream()
-        processingCapturedResult = false
-        waitingForCapture = false
+
+    func stopStreaming() {
+        if !isStreaming{
+            return
+        }
+
+        // Implement stop streaming logic here
+        isStreaming = false
     }
-    
-    func onNewPhotoData(capturedData: CameraCapturedData) {
-        // Because the views hold a reference to `capturedData`, the app updates each texture separately.
-        self.capturedData.depth = capturedData.depth
-        self.capturedData.colorY = capturedData.colorY
-        self.capturedData.colorCbCr = capturedData.colorCbCr
-        self.capturedData.cameraIntrinsics = capturedData.cameraIntrinsics
-        self.capturedData.cameraReferenceDimensions = capturedData.cameraReferenceDimensions
-        waitingForCapture = false
-        processingCapturedResult = true
-    }
-    
-    func onNewData(capturedData: CameraCapturedData) {
-        DispatchQueue.main.async {
-            if !self.processingCapturedResult {
-                // Because the views hold a reference to `capturedData`, the app updates each texture separately.
-                self.capturedData.depth = capturedData.depth
-                self.capturedData.colorY = capturedData.colorY
-                self.capturedData.colorCbCr = capturedData.colorCbCr
-                self.capturedData.cameraIntrinsics = capturedData.cameraIntrinsics
-                self.capturedData.cameraReferenceDimensions = capturedData.cameraReferenceDimensions
-                if self.dataAvailable == false {
-                    self.dataAvailable = true
-                }
+
+    // MARK: - AVCapture Output Delegates
+    // Video sample buffer delegate
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        // Minimal handling: update resolution from first video frame
+        if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            let width = CVPixelBufferGetWidth(imageBuffer)
+            let height = CVPixelBufferGetHeight(imageBuffer)
+            DispatchQueue.main.async {
+                self.resolution = CGSize(width: width, height: height)
             }
         }
     }
-   
-}
 
-class CameraCapturedData {
-    
-    var depth: MTLTexture?
-    var colorY: MTLTexture?
-    var colorCbCr: MTLTexture?
-    var cameraIntrinsics: matrix_float3x3
-    var cameraReferenceDimensions: CGSize
-
-    init(depth: MTLTexture? = nil,
-         colorY: MTLTexture? = nil,
-         colorCbCr: MTLTexture? = nil,
-         cameraIntrinsics: matrix_float3x3 = matrix_float3x3(),
-         cameraReferenceDimensions: CGSize = .zero) {
-        
-        self.depth = depth
-        self.colorY = colorY
-        self.colorCbCr = colorCbCr
-        self.cameraIntrinsics = cameraIntrinsics
-        self.cameraReferenceDimensions = cameraReferenceDimensions
+    // Depth data delegate
+    func depthDataOutput(_ output: AVCaptureDepthDataOutput, didOutput depthData: AVDepthData, timestamp: CMTime, connection: AVCaptureConnection) {
+        // No-op placeholder for depth data handling; implement as needed
     }
 }
-
-// Typealias for default usage with the real CameraController
-// typealias DefaultCameraManager = CameraManager<CameraController>
-//
-// Example instantiation:
-// #if targetEnvironment(simulator)
-// let manager = CameraManager(controller: MockCameraController())
-// #else
-// let manager = CameraManager(controller: CameraController())
-// #endif

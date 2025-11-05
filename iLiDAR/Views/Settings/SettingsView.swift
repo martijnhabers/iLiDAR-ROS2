@@ -20,7 +20,7 @@ struct FormatKey: Hashable {
 
 struct SettingsView: View {
     @ObservedObject var imuManager: IMUManager
-    @ObservedObject var manager: CameraManager
+    @ObservedObject var cameraManager: CameraManager
     @Binding var hostIP: String
     @Binding var hostPort: String
     @Binding var connectionState: ConnectionState
@@ -44,7 +44,7 @@ struct SettingsView: View {
                     NavigationLink(destination: IMUSettingsView(imuFrequency: $imuFrequency, imuManager: imuManager)) {
                         Label("IMU", systemImage: "gyroscope")
                     }
-                    NavigationLink(destination: CameraSettingsView()) {
+                    NavigationLink(destination: CameraSettingsView(cameraManager: cameraManager)) {
                         Label("Camera", systemImage: "camera")
                     }
                     NavigationLink(
@@ -81,7 +81,7 @@ struct SettingsView: View {
     }
 }
 
-
+// TODO: Delete this and use CameraManager directly
 class CameraPreviewSessionManager: ObservableObject {
     @Published var session: AVCaptureSession? = nil
     private var input: AVCaptureDeviceInput?

@@ -12,14 +12,11 @@
 		1031F31B2EB9236600BA1927 /* DepthSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1031F3142EB9236600BA1927 /* DepthSettingsView.swift */; };
 		1031F31C2EB9236600BA1927 /* CameraSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1031F3132EB9236600BA1927 /* CameraSettingsView.swift */; };
 		1031F31D2EB9236600BA1927 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1031F3172EB9236600BA1927 /* SettingsView.swift */; };
+		104E20232EBC067A00B70910 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104E20222EBC067A00B70910 /* DashboardView.swift */; };
 		1050434B2EB91E2F00354994 /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1050434A2EB91E2F00354994 /* View+Extensions.swift */; };
 		1069D48A2E465EC600E02063 /* sensor.proto in Sources */ = {isa = PBXBuildFile; fileRef = 1069D4882E465EC600E02063 /* sensor.proto */; };
 		1069D48B2E465EC600E02063 /* sensor.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1069D4892E465EC600E02063 /* sensor.pb.swift */; };
-		1069D48D2E47DD5C00E02063 /* DepthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1069D48C2E47DD5C00E02063 /* DepthManager.swift */; };
 		106C98E32E28E56C009B7649 /* IMUManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106C98E22E28E56C009B7649 /* IMUManager.swift */; };
-		10D860462E041C1200EB131B /* CameraCapturedData+Mock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */; };
-		10D860472E041C1200EB131B /* MockCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860452E041C1200EB131B /* MockCameraController.swift */; };
-		10D860482E041C1200EB131B /* CameraControllerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D860442E041C1200EB131B /* CameraControllerProtocol.swift */; };
 		10D860502E056E7200EB131B /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604B2E056E7200EB131B /* Enums.swift */; };
 		10D860512E056E7200EB131B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604C2E056E7200EB131B /* MainTabView.swift */; };
 		10D860532E056E7200EB131B /* SliderDepthBoundaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */; };
@@ -28,23 +25,11 @@
 		6D2845352D05349300BE4446 /* CocoaAsyncSocketHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 6D2845332D05349300BE4446 /* CocoaAsyncSocketHandler.m */; };
 		6D2845362D05349300BE4446 /* SocketManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D2845342D05349300BE4446 /* SocketManager.swift */; };
 		6DA885A22D02BC0B0019948C /* DataStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA8859E2D02BC0B0019948C /* DataStorage.swift */; };
-		AE2C81C1273818FF001BDCC7 /* MetalTextureColorZap.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2C81C0273818FF001BDCC7 /* MetalTextureColorZap.swift */; };
-		AE2C81C3273961FF001BDCC7 /* MetalTextureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE921D37270D7B41000E95C6 /* MetalTextureView.swift */; };
-		AE2C81C427396203001BDCC7 /* MetalTextureColorThresholdDepth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2DD57D2732870500FAB8A5 /* MetalTextureColorThresholdDepth.swift */; };
-		AE2C81C52739620A001BDCC7 /* MetalTextureViewDepth.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7889B0271F02D800B0383F /* MetalTextureViewDepth.swift */; };
-		AE2C81C62739620E001BDCC7 /* MetalTextureViewColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEC88718272EA8E600ED6FCC /* MetalTextureViewColor.swift */; };
-		AE5D416F2756041300B2513E /* MetalEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE5D416E2756041300B2513E /* MetalEnvironment.swift */; };
-		AE8A362E27313F9C000B43A7 /* MetalContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEAC8EBA272914AA001CC1D5 /* MetalContentView.swift */; };
 		AE921D2A270D7B02000E95C6 /* iLiDARAPP.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE921D29270D7B02000E95C6 /* iLiDARAPP.swift */; };
-		AE921D2C270D7B02000E95C6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE921D2B270D7B02000E95C6 /* ContentView.swift */; };
 		AE921D2E270D7B04000E95C6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE921D2D270D7B04000E95C6 /* Assets.xcassets */; };
 		AE921D31270D7B04000E95C6 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AE921D30270D7B04000E95C6 /* Preview Assets.xcassets */; };
-		AE9AD789270ECC86001218B2 /* shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = AE9AD788270ECC86001218B2 /* shaders.metal */; };
-		AE9AD78D270ECD01001218B2 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9AD78C270ECD01001218B2 /* CameraController.swift */; };
 		AEAC8EBD27291512001CC1D5 /* CVPixelBuffer+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEAC8EBC27291512001CC1D5 /* CVPixelBuffer+Extension.swift */; };
-		AED0C8F52753C969006E3F11 /* MetalPointCloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED0C8F42753C969006E3F11 /* MetalPointCloud.swift */; };
 		AED300A5271D6D18008F6007 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED300A4271D6D18008F6007 /* CameraManager.swift */; };
-		AEE83E902743EFE900790BF9 /* DepthOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE83E8F2743EFE800790BF9 /* DepthOverlay.swift */; };
 		B22F3D3C83A4D9C7D3D28343 /* libPods-iLiDAR.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C2692CDA06139D285747EB0 /* libPods-iLiDAR.a */; };
 /* End PBXBuildFile section */
 
@@ -55,14 +40,11 @@
 		1031F3152EB9236600BA1927 /* IMUSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMUSettingsView.swift; sourceTree = "<group>"; };
 		1031F3162EB9236600BA1927 /* NetworkSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSettingsView.swift; sourceTree = "<group>"; };
 		1031F3172EB9236600BA1927 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		104E20222EBC067A00B70910 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		1050434A2EB91E2F00354994 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
 		1069D4882E465EC600E02063 /* sensor.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = sensor.proto; sourceTree = "<group>"; };
 		1069D4892E465EC600E02063 /* sensor.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sensor.pb.swift; sourceTree = "<group>"; };
-		1069D48C2E47DD5C00E02063 /* DepthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthManager.swift; sourceTree = "<group>"; };
 		106C98E22E28E56C009B7649 /* IMUManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMUManager.swift; sourceTree = "<group>"; };
-		10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CameraCapturedData+Mock.swift"; sourceTree = "<group>"; };
-		10D860442E041C1200EB131B /* CameraControllerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControllerProtocol.swift; sourceTree = "<group>"; };
-		10D860452E041C1200EB131B /* MockCameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockCameraController.swift; sourceTree = "<group>"; };
 		10D8604B2E056E7200EB131B /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		10D8604C2E056E7200EB131B /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderDepthBoundaryView.swift; sourceTree = "<group>"; };
@@ -78,26 +60,14 @@
 		9ED80CBFEB14F0F0F5121BC6 /* SampleCode.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		AE18F046274A126C008BC9E3 /* AVFCapture.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AVFCapture.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE18F048274A1272008BC9E3 /* CMCapture.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = CMCapture.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		AE2C81C0273818FF001BDCC7 /* MetalTextureColorZap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetalTextureColorZap.swift; sourceTree = "<group>"; };
-		AE2DD57D2732870500FAB8A5 /* MetalTextureColorThresholdDepth.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetalTextureColorThresholdDepth.swift; sourceTree = "<group>"; };
-		AE5D416E2756041300B2513E /* MetalEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalEnvironment.swift; sourceTree = "<group>"; };
 		AE7889AD271DB86E00B0383F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		AE7889B0271F02D800B0383F /* MetalTextureViewDepth.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetalTextureViewDepth.swift; sourceTree = "<group>"; };
 		AE921D26270D7B02000E95C6 /* iLiDAR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iLiDAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE921D29270D7B02000E95C6 /* iLiDARAPP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iLiDARAPP.swift; sourceTree = "<group>"; };
-		AE921D2B270D7B02000E95C6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE921D2D270D7B04000E95C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AE921D30270D7B04000E95C6 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		AE921D37270D7B41000E95C6 /* MetalTextureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalTextureView.swift; sourceTree = "<group>"; };
-		AE9AD788270ECC86001218B2 /* shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = shaders.metal; sourceTree = "<group>"; };
-		AE9AD78C270ECD01001218B2 /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
 		AEA6FCEF272AED0C002947D4 /* AppleDepth.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = AppleDepth.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		AEAC8EBA272914AA001CC1D5 /* MetalContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalContentView.swift; sourceTree = "<group>"; };
 		AEAC8EBC27291512001CC1D5 /* CVPixelBuffer+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CVPixelBuffer+Extension.swift"; sourceTree = "<group>"; };
-		AEC88718272EA8E600ED6FCC /* MetalTextureViewColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalTextureViewColor.swift; sourceTree = "<group>"; };
-		AED0C8F42753C969006E3F11 /* MetalPointCloud.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetalPointCloud.swift; sourceTree = "<group>"; };
 		AED300A4271D6D18008F6007 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
-		AEE83E8F2743EFE800790BF9 /* DepthOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthOverlay.swift; sourceTree = "<group>"; };
 		C54C61034CF76EABC6B46CFC /* Pods-iLiDAR.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-iLiDAR.debug.xcconfig"; path = "Target Support Files/Pods-iLiDAR/Pods-iLiDAR.debug.xcconfig"; sourceTree = "<group>"; };
 		D0C5477C199C5F5C91FCD321 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -172,10 +142,8 @@
 		AE921D28270D7B02000E95C6 /* iLiDAR */ = {
 			isa = PBXGroup;
 			children = (
-				1069D48C2E47DD5C00E02063 /* DepthManager.swift */,
 				1069D4882E465EC600E02063 /* sensor.proto */,
 				1069D4892E465EC600E02063 /* sensor.pb.swift */,
-				AE9AD78C270ECD01001218B2 /* CameraController.swift */,
 				C444DFC327C43447000D8883 /* Model */,
 				AEC8871B272EB01200ED6FCC /* Views */,
 				AE921D29270D7B02000E95C6 /* iLiDARAPP.swift */,
@@ -205,25 +173,10 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		AEC8871A272EAFF200ED6FCC /* Metal */ = {
-			isa = PBXGroup;
-			children = (
-				C444DFC127C4306D000D8883 /* Shaders */,
-				AE5D416E2756041300B2513E /* MetalEnvironment.swift */,
-				AEAC8EBA272914AA001CC1D5 /* MetalContentView.swift */,
-				AE921D37270D7B41000E95C6 /* MetalTextureView.swift */,
-				AE2DD57D2732870500FAB8A5 /* MetalTextureColorThresholdDepth.swift */,
-				AE2C81C0273818FF001BDCC7 /* MetalTextureColorZap.swift */,
-				AE7889B0271F02D800B0383F /* MetalTextureViewDepth.swift */,
-				AEC88718272EA8E600ED6FCC /* MetalTextureViewColor.swift */,
-				AED0C8F42753C969006E3F11 /* MetalPointCloud.swift */,
-			);
-			path = Metal;
-			sourceTree = "<group>";
-		};
 		AEC8871B272EB01200ED6FCC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				104E20222EBC067A00B70910 /* DashboardView.swift */,
 				1031F3182EB9236600BA1927 /* Settings */,
 				1050434A2EB91E2F00354994 /* View+Extensions.swift */,
 				10D860572E0573D300EB131B /* CameraPickerView.swift */,
@@ -231,9 +184,6 @@
 				10D8604C2E056E7200EB131B /* MainTabView.swift */,
 				10D8604E2E056E7200EB131B /* SliderDepthBoundaryView.swift */,
 				10D8604F2E056E7200EB131B /* UnifiedButtonStyle.swift */,
-				AE921D2B270D7B02000E95C6 /* ContentView.swift */,
-				AEE83E8F2743EFE800790BF9 /* DepthOverlay.swift */,
-				AEC8871A272EAFF200ED6FCC /* Metal */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -246,21 +196,10 @@
 			name = Configuration;
 			sourceTree = "<group>";
 		};
-		C444DFC127C4306D000D8883 /* Shaders */ = {
-			isa = PBXGroup;
-			children = (
-				AE9AD788270ECC86001218B2 /* shaders.metal */,
-			);
-			path = Shaders;
-			sourceTree = "<group>";
-		};
 		C444DFC327C43447000D8883 /* Model */ = {
 			isa = PBXGroup;
 			children = (
 				106C98E22E28E56C009B7649 /* IMUManager.swift */,
-				10D860432E041C1200EB131B /* CameraCapturedData+Mock.swift */,
-				10D860442E041C1200EB131B /* CameraControllerProtocol.swift */,
-				10D860452E041C1200EB131B /* MockCameraController.swift */,
 				AED300A4271D6D18008F6007 /* CameraManager.swift */,
 				AEAC8EBC27291512001CC1D5 /* CVPixelBuffer+Extension.swift */,
 			);
@@ -397,10 +336,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				AEAC8EBD27291512001CC1D5 /* CVPixelBuffer+Extension.swift in Sources */,
-				AE9AD78D270ECD01001218B2 /* CameraController.swift in Sources */,
-				AE9AD789270ECC86001218B2 /* shaders.metal in Sources */,
-				AE2C81C62739620E001BDCC7 /* MetalTextureViewColor.swift in Sources */,
-				AED0C8F52753C969006E3F11 /* MetalPointCloud.swift in Sources */,
 				1031F3192EB9236600BA1927 /* IMUSettingsView.swift in Sources */,
 				1031F31A2EB9236600BA1927 /* NetworkSettingsView.swift in Sources */,
 				1031F31B2EB9236600BA1927 /* DepthSettingsView.swift in Sources */,
@@ -409,19 +344,9 @@
 				10D860582E0573D300EB131B /* CameraPickerView.swift in Sources */,
 				1050434B2EB91E2F00354994 /* View+Extensions.swift in Sources */,
 				6D2845352D05349300BE4446 /* CocoaAsyncSocketHandler.m in Sources */,
+				104E20232EBC067A00B70910 /* DashboardView.swift in Sources */,
 				6D2845362D05349300BE4446 /* SocketManager.swift in Sources */,
-				AE2C81C1273818FF001BDCC7 /* MetalTextureColorZap.swift in Sources */,
-				AE5D416F2756041300B2513E /* MetalEnvironment.swift in Sources */,
 				6DA885A22D02BC0B0019948C /* DataStorage.swift in Sources */,
-				AE8A362E27313F9C000B43A7 /* MetalContentView.swift in Sources */,
-				AE2C81C427396203001BDCC7 /* MetalTextureColorThresholdDepth.swift in Sources */,
-				10D860462E041C1200EB131B /* CameraCapturedData+Mock.swift in Sources */,
-				10D860472E041C1200EB131B /* MockCameraController.swift in Sources */,
-				10D860482E041C1200EB131B /* CameraControllerProtocol.swift in Sources */,
-				AEE83E902743EFE900790BF9 /* DepthOverlay.swift in Sources */,
-				1069D48D2E47DD5C00E02063 /* DepthManager.swift in Sources */,
-				AE2C81C52739620A001BDCC7 /* MetalTextureViewDepth.swift in Sources */,
-				AE921D2C270D7B02000E95C6 /* ContentView.swift in Sources */,
 				1069D48A2E465EC600E02063 /* sensor.proto in Sources */,
 				1069D48B2E465EC600E02063 /* sensor.pb.swift in Sources */,
 				AED300A5271D6D18008F6007 /* CameraManager.swift in Sources */,
@@ -430,7 +355,6 @@
 				10D860512E056E7200EB131B /* MainTabView.swift in Sources */,
 				10D860532E056E7200EB131B /* SliderDepthBoundaryView.swift in Sources */,
 				10D860542E056E7200EB131B /* UnifiedButtonStyle.swift in Sources */,
-				AE2C81C3273961FF001BDCC7 /* MetalTextureView.swift in Sources */,
 				AE921D2A270D7B02000E95C6 /* iLiDARAPP.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

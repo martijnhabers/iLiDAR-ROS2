@@ -10,9 +10,9 @@ import MetalKit
 import Metal
 import CoreMotion
 
-struct ContentView: View {
+struct DashboardView: View {
     @Binding var imuFrequency: Double
-    @ObservedObject var manager: CameraManager
+    @ObservedObject var cameraManager: CameraManager
     @StateObject private var imuManager = IMUManager()
     @State private var maxDepth = Float(5.0)
     @State private var minDepth = Float(0.0)
@@ -59,15 +59,15 @@ struct ContentView: View {
             Spacer()
             Button(action: {
                 if isRunning {
-                    // Stop all streaming
-                    manager.controller.stopStream()
-                    manager.controller.enableNetworkTransfer = false
                     imuManager.stopStreaming()
+                    cameraManager.stopStreaming()
                 } else {
-                    // Start streaming only selected sensors
+                    cameraManager.depthEnabled = depthEnabled
+                    cameraManager.cameraEnabled = cameraEnabled
+                    
                     if cameraEnabled || depthEnabled {
-                        manager.controller.enableNetworkTransfer = true
-                        manager.controller.startStream()
+                        cameraManager.startStreaming()
+                        print("start Camera/Depth stream from button")
                     }
                     if imuEnabled {
                         imuManager.startStreaming(frequency: imuFrequency)
@@ -98,9 +98,9 @@ struct ContentView: View {
     @FocusState private var focusedField: Field?
 }
 
-// struct ContentView_Previews: PreviewProvider {
+// struct DashboardView_Previews: PreviewProvider {
 //     static var previews: some View {
-//         ContentView(imuFrequency: .constant(50))
+//         DashboardView(imuFrequency: .constant(50))
 //             .previewDevice("iPhone 12 Pro Max")
 //     }
 // }
