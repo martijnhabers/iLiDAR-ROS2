@@ -114,7 +114,7 @@ class SocketManager {
         sendData(dataType: .jpg, fileName: fileName, data: data, chunkSize: chunkSize)
     }
     
-    func sendBIN(fileName: String, data: Data, chunkSize: Int = 1024) {
+    func sendBIN(fileName: String, data: Data, chunkSize: Int = 16384) {
         sendData(dataType: .bin, fileName: fileName, data: data, chunkSize: chunkSize)
     }
     

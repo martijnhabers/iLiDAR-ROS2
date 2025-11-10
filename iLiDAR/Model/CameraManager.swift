@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import CoreImage
+import UIKit
 
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureDepthDataOutputDelegate {
     @Published var resolution: CGSize = .zero
@@ -11,7 +12,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var depthEnabled: Bool = false
     @Published var cameraEnabled: Bool = false
 
+    private var frame_counter: Int = 0
+
     private var captureSession: AVCaptureSession?
+    private let context = CIContext()
     // Store the selected AVCaptureDevice so other setup methods can access it
     private var videoDevice: AVCaptureDevice?
 
@@ -94,6 +98,7 @@ private func setupCaptureSession() {
 
     func startStreaming() {
         // Implement streaming logic here
+        startSession()
         isStreaming = true
     }
 
@@ -110,6 +115,62 @@ private func setupCaptureSession() {
     // Video sample buffer delegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         // Minimal handling: update resolution from first video frame
+
+        if frame_counter % 2 != 0 {
+            // Skip every other frame to reduce bandwidth
+            return
+        }
+
+        // Convert the sample buffer to an image
+        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            print("Failed to get image buffer")
+            return
+        }
+        
+        // Convert to UIImage then to JPEG data
+        let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            print("Failed to create CGImage")
+            return
+        }
+        
+        let uiImage = UIImage(cgImage: cgImage)
+        guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
+            print("Failed to convert to JPEG")
+            return
+        }
+        
+        // Get timestamp (nanoseconds since epoch)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1_000_000_000)
+        
+        // Get image dimensions
+        let width = UInt32(cgImage.width)
+        let height = UInt32(cgImage.height)
+        
+        // Create the protobuf message
+        var cameraData = Sensor_CameraData()
+        cameraData.timestamp = timestamp
+        cameraData.width = width
+        cameraData.height = height
+        cameraData.encoding = "jpeg"
+        cameraData.imageData = jpegData
+        cameraData.frameID = "camera_link"
+        
+        // Wrap it in the sensor message envelope
+        var sensorMessage = Sensor_SensorMessage()
+        sensorMessage.camera = cameraData
+
+        // Serialize and send the data over the socket, similar to IMUManager
+        do {
+            let serializedData = try sensorMessage.serializedData()
+            let fileName = "camera_" + DataStorage.shared.eventName()
+            DataStorage.shared.socketManager.sendBIN(fileName: fileName, data: serializedData)
+            print("Serialized and sent \(serializedData.count) bytes as \(fileName)")
+        } catch {
+            print("Failed to serialize: \(error)")
+        }
+
         if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
             let width = CVPixelBufferGetWidth(imageBuffer)
             let height = CVPixelBufferGetHeight(imageBuffer)
@@ -117,6 +178,8 @@ private func setupCaptureSession() {
                 self.resolution = CGSize(width: width, height: height)
             }
         }
+
+        frame_counter += 1
     }
 
     // Depth data delegate

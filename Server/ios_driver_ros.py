@@ -16,6 +16,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import numpy as np
 from read_depth_data import read_raw_depth_data
 import queue
+import sensor_pb2
 
 # =========================
 # Configuration Parameters
@@ -273,15 +274,34 @@ class ClientHandler(threading.Thread):
             complete_data = file_receiver.reconstruct_file()
 
             if file_receiver.data_type == DATA_TYPE_BIN:
-                depth_width = 320  # Example width
-                depth_height = 240  # Example height
-                fx, fy = 498.72195, 498.72195  # Updated focal lengths from camera params
-                cx, cy = 317.22327, 239.91258  # Updated principal point offsets from camera params
-
-                # Directly process depth data from the complete payload
-                depth_data = np.frombuffer(complete_data, dtype=np.float16).reshape((depth_height, depth_width))
-                self.pointcloud_publisher.publish_pointcloud(depth_data, depth_width, depth_height, fx, fy, cx, cy)
-                print(f"[+] Point cloud published to /depth_pointcloud")
+                # Decode Protobuf binary data
+                try:
+                    sensor_msg = sensor_pb2.SensorMessage()
+                    sensor_msg.ParseFromString(complete_data)
+                    
+                    # Check which type of message was received
+                    if sensor_msg.HasField('camera'):
+                        # Extract and publish camera image from protobuf
+                        camera_data = sensor_msg.camera
+                        self.image_publisher.publish_jpeg(camera_data.imageData)
+                        print(f"[+] Camera image from protobuf published to /color_image "
+                              f"(timestamp: {camera_data.timestamp}, frame_id: {camera_data.frameID})")
+                    elif sensor_msg.HasField('imu'):
+                        # Extract and publish IMU data from protobuf
+                        imu_data = sensor_msg.imu
+                        print(f"[+] IMU data from protobuf received "
+                              f"(timestamp: {imu_data.timestamp}, frame_id: {imu_data.frameID})")
+                    elif sensor_msg.HasField('depth'):
+                        # Extract and publish depth image from protobuf
+                        depth_img = sensor_msg.depth
+                        depth_data = np.frombuffer(depth_img.depth_data, dtype=np.float16).reshape((depth_img.height, depth_img.width))
+                        self.pointcloud_publisher.publish_pointcloud(depth_data, depth_img.width, depth_img.height, 498.72195, 498.72195, 317.22327, 239.91258)
+                        print(f"[+] Depth image from protobuf published to /depth_pointcloud "
+                              f"(timestamp: {depth_img.timestamp}, size: {depth_img.width}x{depth_img.height})")
+                    else:
+                        print(f"[!] Unknown protobuf message type in {filename}")
+                except Exception as e:
+                    print(f"[PROTOBUF] Failed to decode protobuf message: {e}")
 
             ack_message = f"File '{filename}' received and processed successfully."
             self.send_acknowledgment(ack_message)
