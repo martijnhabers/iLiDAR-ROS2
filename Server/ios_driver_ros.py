@@ -283,14 +283,14 @@ class ClientHandler(threading.Thread):
                     if sensor_msg.HasField('camera'):
                         # Extract and publish camera image from protobuf
                         camera_data = sensor_msg.camera
-                        self.image_publisher.publish_jpeg(camera_data.imageData)
+                        self.image_publisher.publish_jpeg(camera_data.image_data)
                         print(f"[+] Camera image from protobuf published to /color_image "
-                              f"(timestamp: {camera_data.timestamp}, frame_id: {camera_data.frameID})")
+                              f"(timestamp: {camera_data.timestamp}, frame_id: {camera_data.frame_id})")
                     elif sensor_msg.HasField('imu'):
                         # Extract and publish IMU data from protobuf
                         imu_data = sensor_msg.imu
                         print(f"[+] IMU data from protobuf received "
-                              f"(timestamp: {imu_data.timestamp}, frame_id: {imu_data.frameID})")
+                              f"(timestamp: {imu_data.timestamp}, frame_id: {imu_data.frame_id})")
                     elif sensor_msg.HasField('depth'):
                         # Extract and publish depth image from protobuf
                         depth_img = sensor_msg.depth
