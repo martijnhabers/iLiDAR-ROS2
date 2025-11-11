@@ -11,7 +11,7 @@ import struct
 import os
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import CompressedImage, PointCloud2, PointField
+from sensor_msgs.msg import CompressedImage, PointCloud2, PointField, Imu
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import numpy as np
 from read_depth_data import read_raw_depth_data
@@ -157,11 +157,47 @@ class PointCloudPublisher(Node):
         self.publisher_.publish(pointcloud_msg)
         self.get_logger().info(f"Published point cloud with {len(points)} points")
 
+class IMUPublisher(Node):
+    
+    def __init__(self):
+        super().__init__('imu_publisher')
+        self.publisher_ = self.create_publisher(Imu, '/imu/data', 10)
+    
+    def publish_imu(self, imu_data):
+        """
+        Publishes IMU data to the /imu/data topic.
+        Parameters:
+        - imu_data: sensor_pb2.IMUData, the IMU data received from the client
+        """
+
+        imu_msg = Imu()
+        imu_msg.header.stamp = self.get_clock().now().to_msg()
+        imu_msg.header.frame_id = imu_data.frame_id
+
+        # Fill in orientation
+        imu_msg.orientation.x = imu_data.orientation.x
+        imu_msg.orientation.y = imu_data.orientation.y
+        imu_msg.orientation.z = imu_data.orientation.z
+        imu_msg.orientation.w = imu_data.orientation.w
+
+        # Fill in angular velocity
+        imu_msg.angular_velocity.x = imu_data.gyro.x
+        imu_msg.angular_velocity.y = imu_data.gyro.y
+        imu_msg.angular_velocity.z = imu_data.gyro.z
+
+        # Fill in linear acceleration
+        imu_msg.linear_acceleration.x = imu_data.accel.x
+        imu_msg.linear_acceleration.y = imu_data.accel.y
+        imu_msg.linear_acceleration.z = imu_data.accel.z
+
+        self.publisher_.publish(imu_msg)
+        self.get_logger().info(f"Published IMU data (timestamp: {imu_data.timestamp})")
+
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address, image_publisher, pointcloud_publisher):
+    def __init__(self, client_socket, client_address, image_publisher, pointcloud_publisher, imu_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
@@ -169,6 +205,7 @@ class ClientHandler(threading.Thread):
         self.files = {}     # Maps filename to FileReceiver instances
         self.image_publisher = image_publisher
         self.pointcloud_publisher = pointcloud_publisher
+        self.imu_publisher = imu_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -289,6 +326,7 @@ class ClientHandler(threading.Thread):
                     elif sensor_msg.HasField('imu'):
                         # Extract and publish IMU data from protobuf
                         imu_data = sensor_msg.imu
+                        self.imu_publisher.publish_imu(imu_data)
                         print(f"[+] IMU data from protobuf received "
                               f"(timestamp: {imu_data.timestamp}, frame_id: {imu_data.frame_id})")
                     elif sensor_msg.HasField('depth'):
@@ -323,7 +361,7 @@ class ClientHandler(threading.Thread):
 # Server Setup and Execution
 # =========================
 
-def start_server(image_publisher, pointcloud_publisher):
+def start_server(image_publisher, pointcloud_publisher, imu_publisher):
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -335,7 +373,7 @@ def start_server(image_publisher, pointcloud_publisher):
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr, image_publisher, pointcloud_publisher)
+            handler = ClientHandler(client_sock, client_addr, image_publisher, pointcloud_publisher, imu_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -348,8 +386,9 @@ def main():
     rclpy.init()
     image_publisher = ImagePublisher()
     pointcloud_publisher = PointCloudPublisher()
+    imu_publisher = IMUPublisher()
 
-    server_thread = threading.Thread(target=start_server, args=(image_publisher, pointcloud_publisher), daemon=True)
+    server_thread = threading.Thread(target=start_server, args=(image_publisher, pointcloud_publisher, imu_publisher), daemon=True)
     server_thread.start()
 
     try:

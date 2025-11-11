@@ -106,8 +106,7 @@ private func setupCaptureSession() {
         if !isStreaming{
             return
         }
-
-        // Implement stop streaming logic here
+        stopSession()        
         isStreaming = false
     }
 
@@ -117,6 +116,7 @@ private func setupCaptureSession() {
         // Minimal handling: update resolution from first video frame
 
         if frame_counter % 2 != 0 {
+            frame_counter += 1
             // Skip every other frame to reduce bandwidth
             return
         }
