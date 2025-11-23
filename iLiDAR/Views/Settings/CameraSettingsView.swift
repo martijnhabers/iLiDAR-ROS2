@@ -9,7 +9,7 @@ struct CameraSettingsView: View {
 
     private let devices: [AVCaptureDevice] = {
         AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .builtInTelephotoCamera, .builtInUltraWideCamera],
+            deviceTypes: [.builtInWideAngleCamera, .builtInTelephotoCamera, .builtInUltraWideCamera, .builtInLiDARDepthCamera],
             mediaType: .video,
             position: .unspecified
         ).devices
@@ -24,7 +24,7 @@ struct CameraSettingsView: View {
                     }
                 }
                 .onChange(of: selectedCameraUniqueID) { _ in
-                    // insert logic to handle a camera change
+                    
                 }
             }
             Section(header: Text("Preview")) {

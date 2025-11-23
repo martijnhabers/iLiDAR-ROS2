@@ -31,159 +31,262 @@ private func setupCaptureSession() {
         captureSession.beginConfiguration()
 
         setupCaptureInputs()
+        configureDepthFormat()
         setupCaptureoutputs()
 
         captureSession.commitConfiguration()
     }
 
-    private func setupCaptureInputs() {
-        // Setup input device
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            print("Error: Unable to find a video device.")
-            return
-        }
+private func setupCaptureInputs() {
 
-        // Save to property so other methods (like setupCaptureSession) can read its format/frame rate
-        self.videoDevice = device
-
-        guard let videoInput = try? AVCaptureDeviceInput(device: device), captureSession?.canAddInput(videoInput) == true else {
-            print("Error: Unable to add video input.")
-            return
-        }
-
-        captureSession?.addInput(videoInput)
+    // Setup input device
+    guard let device = AVCaptureDevice.default(.builtInLiDARDepthCamera, for: .video, position: .back) else {
+        print("Error: Unable to find a video device.")
+        return
     }
 
-    private func setupCaptureoutputs() {
-        // Ensure captureSession is available
-        guard let captureSession = captureSession else {
-            print("Error: captureSession is not initialized.")
-            return
-        }
-         // Setup video output
-        let videoDataOutput = AVCaptureVideoDataOutput()
-        videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
-        guard captureSession.canAddOutput(videoDataOutput) else {
-            print("Error: Unable to add video output.")
-            return
-        }
-         captureSession.addOutput(videoDataOutput)
+    // Save to property so other methods (like setupCaptureSession) can read its format/frame rate
+    self.videoDevice = device
 
-         // Send camera intrinsics, if possible
-         let connection = videoDataOutput.connection(with: .video)
-         if connection?.isCameraIntrinsicMatrixDeliverySupported == true {
-             connection?.isCameraIntrinsicMatrixDeliveryEnabled = true
-         }
-
-         // Setup depth output
-         let depthDataOutput = AVCaptureDepthDataOutput()
-         depthDataOutput.setDelegate(self, callbackQueue: DispatchQueue(label: "depthQueue"))
-         if captureSession.canAddOutput(depthDataOutput) {
-             captureSession.addOutput(depthDataOutput)
-         }
-
-     }
-
-    func startSession() {
-        print("Starting camera session with these settings - Depth Enabled: \(depthEnabled), Camera Enabled: \(cameraEnabled) and this camera: \(String(describing: captureSession))")
-        captureSession?.startRunning()
-        isRunning = true
+    guard let videoInput = try? AVCaptureDeviceInput(device: device), captureSession?.canAddInput(videoInput) == true else {
+        print("Error: Unable to add video input.")
+        return
     }
 
-    func stopSession() {
-        print("Stopping camera session")
-        captureSession?.stopRunning()
-        isRunning = false
+    captureSession?.addInput(videoInput)
+}
+
+private func setupCaptureoutputs() {
+    // Ensure captureSession is available
+    guard let captureSession = captureSession else {
+        print("Error: captureSession is not initialized.")
+        return
+    }
+        // Setup video output
+    let videoDataOutput = AVCaptureVideoDataOutput()
+    videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
+    guard captureSession.canAddOutput(videoDataOutput) else {
+        print("Error: Unable to add video output.")
+        return
+    }
+        captureSession.addOutput(videoDataOutput)
+
+        // Send camera intrinsics, if possible
+        let connection = videoDataOutput.connection(with: .video)
+        if connection?.isCameraIntrinsicMatrixDeliverySupported == true {
+            connection?.isCameraIntrinsicMatrixDeliveryEnabled = true
+        }
+
+        // Setup depth output
+        let depthDataOutput = AVCaptureDepthDataOutput()
+        depthDataOutput.isFilteringEnabled = false
+        depthDataOutput.setDelegate(self, callbackQueue: DispatchQueue(label: "depthQueue"))
+        if captureSession.canAddOutput(depthDataOutput) {
+            captureSession.addOutput(depthDataOutput)
+        }
+
     }
 
-    func startStreaming() {
-        // Implement streaming logic here
-        startSession()
-        isStreaming = true
+func startSession() {
+    print("Starting camera session with these settings - Depth Enabled: \(depthEnabled), Camera Enabled: \(cameraEnabled) and this camera: \(String(describing: captureSession))")
+    captureSession?.startRunning()
+    isRunning = true
+}
+
+func stopSession() {
+    print("Stopping camera session")
+    captureSession?.stopRunning()
+    isRunning = false
+}
+
+func startStreaming() {
+    // Implement streaming logic here
+    startSession()
+    isStreaming = true
+}
+
+func stopStreaming() {
+    if !isStreaming{
+        return
+    }
+    stopSession()        
+    isStreaming = false
+}
+
+// MARK: - AVCapture Output Delegates
+// Video sample buffer delegate
+func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    // Minimal handling: update resolution from first video frame
+
+    if frame_counter % 2 != 0 {
+        frame_counter += 1
+        // Skip every other frame to reduce bandwidth
+        return
     }
 
-    func stopStreaming() {
-        if !isStreaming{
-            return
-        }
-        stopSession()        
-        isStreaming = false
+    // Convert the sample buffer to an image
+    guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+        print("Failed to get image buffer")
+        return
+    }
+    
+    // Convert to UIImage then to JPEG data
+    let ciImage = CIImage(cvPixelBuffer: imageBuffer)
+    let context = CIContext()
+    guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+        print("Failed to create CGImage")
+        return
+    }
+    
+    let uiImage = UIImage(cgImage: cgImage)
+    guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
+        print("Failed to convert to JPEG")
+        return
+    }
+    
+    // Get timestamp (nanoseconds since epoch)
+    let timestamp = UInt64(Date().timeIntervalSince1970 * 1_000_000_000)
+    
+    // Get image dimensions
+    let width = UInt32(cgImage.width)
+    let height = UInt32(cgImage.height)
+    
+    // Create the protobuf message
+    var cameraData = Sensor_CameraData()
+    cameraData.timestamp = timestamp
+    cameraData.width = width
+    cameraData.height = height
+    cameraData.encoding = "jpeg"
+    cameraData.imageData = jpegData
+    cameraData.frameID = "camera_link"
+    
+    // Wrap it in the sensor message envelope
+    var sensorMessage = Sensor_SensorMessage()
+    sensorMessage.camera = cameraData
+
+    // Serialize and send the data over the socket, similar to IMUManager
+    do {
+        let serializedData = try sensorMessage.serializedData()
+        let fileName = "camera_" + DataStorage.shared.eventName()
+        DataStorage.shared.socketManager.sendBIN(fileName: fileName, data: serializedData)
+        print("Serialized and sent \(serializedData.count) bytes as \(fileName)")
+    } catch {
+        print("Failed to serialize: \(error)")
     }
 
-    // MARK: - AVCapture Output Delegates
-    // Video sample buffer delegate
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        // Minimal handling: update resolution from first video frame
+    if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+        let width = CVPixelBufferGetWidth(imageBuffer)
+        let height = CVPixelBufferGetHeight(imageBuffer)
+        DispatchQueue.main.async {
+            self.resolution = CGSize(width: width, height: height)
+        }
+    }
 
-        if frame_counter % 2 != 0 {
-            frame_counter += 1
-            // Skip every other frame to reduce bandwidth
+    frame_counter += 1
+}
+
+    // Depth data delegate
+    func depthDataOutput(_ output: AVCaptureDepthDataOutput, didOutput depthData: AVDepthData, timestamp: CMTime, connection: AVCaptureConnection) {
+
+        print("depthDataOutput called")
+
+        // Get the depth map as a pixel buffer
+        let depthPixelBuffer = depthData.depthDataMap
+        let depthWidth = CVPixelBufferGetWidth(depthPixelBuffer)
+        let depthHeight = CVPixelBufferGetHeight(depthPixelBuffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(depthPixelBuffer)
+
+        print("Depth data dimensions: \(depthWidth)x\(depthHeight)")
+        print("BytesPerRow: \(bytesPerRow), Expected for width \(depthWidth): \(depthWidth * 4)")
+        print("Pixel format: \(CVPixelBufferGetPixelFormatType(depthPixelBuffer))")
+
+        // Lock the pixel buffer for reading
+        CVPixelBufferLockBaseAddress(depthPixelBuffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(depthPixelBuffer, .readOnly) }
+
+        // Get the raw depth data
+        guard let baseAddress = CVPixelBufferGetBaseAddress(depthPixelBuffer) else {
+            print("Failed to get depth pixel buffer base address")
             return
         }
 
-        // Convert the sample buffer to an image
-        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            print("Failed to get image buffer")
-            return
-        }
-        
-        // Convert to UIImage then to JPEG data
-        let ciImage = CIImage(cvPixelBuffer: imageBuffer)
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            print("Failed to create CGImage")
-            return
-        }
-        
-        let uiImage = UIImage(cgImage: cgImage)
-        guard let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
-            print("Failed to convert to JPEG")
-            return
-        }
+        let dataSize = bytesPerRow * depthHeight
+        let depthDataBytes = Data(bytes: baseAddress, count: dataSize)
+        print("Total data size: \(dataSize) bytes = \(dataSize / 4) float32 elements")
         
         // Get timestamp (nanoseconds since epoch)
         let timestamp = UInt64(Date().timeIntervalSince1970 * 1_000_000_000)
         
-        // Get image dimensions
-        let width = UInt32(cgImage.width)
-        let height = UInt32(cgImage.height)
-        
         // Create the protobuf message
-        var cameraData = Sensor_CameraData()
-        cameraData.timestamp = timestamp
-        cameraData.width = width
-        cameraData.height = height
-        cameraData.encoding = "jpeg"
-        cameraData.imageData = jpegData
-        cameraData.frameID = "camera_link"
+        var depthDataProto = Sensor_DepthImage()
+        depthDataProto.timestamp = timestamp
+        depthDataProto.width = UInt32(depthWidth)
+        depthDataProto.height = UInt32(depthHeight)
+        depthDataProto.encoding = "32FC1"
+        depthDataProto.depthData = depthDataBytes
+        depthDataProto.frameID = "depth_camera_link"
         
         // Wrap it in the sensor message envelope
         var sensorMessage = Sensor_SensorMessage()
-        sensorMessage.camera = cameraData
-
-        // Serialize and send the data over the socket, similar to IMUManager
+        sensorMessage.depth = depthDataProto
+        
+        // Serialize and send the data over the socket
         do {
             let serializedData = try sensorMessage.serializedData()
-            let fileName = "camera_" + DataStorage.shared.eventName()
+            let fileName = "depth_" + DataStorage.shared.eventName()
             DataStorage.shared.socketManager.sendBIN(fileName: fileName, data: serializedData)
             print("Serialized and sent \(serializedData.count) bytes as \(fileName)")
         } catch {
-            print("Failed to serialize: \(error)")
+            print("Failed to serialize depth data: \(error)")
         }
-
-        if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-            let width = CVPixelBufferGetWidth(imageBuffer)
-            let height = CVPixelBufferGetHeight(imageBuffer)
-            DispatchQueue.main.async {
-                self.resolution = CGSize(width: width, height: height)
-            }
-        }
-
-        frame_counter += 1
     }
 
-    // Depth data delegate
-    func depthDataOutput(_ output: AVCaptureDepthDataOutput, didOutput depthData: AVDepthData, timestamp: CMTime, connection: AVCaptureConnection) {
-        // No-op placeholder for depth data handling; implement as needed
+private func configureDepthFormat() {
+    guard let device = self.videoDevice else { return }
+    
+    // Find a format that supports depth data
+    let formats = device.formats
+    var selectedFormat: AVCaptureDevice.Format?
+    
+
+    for format in formats {
+        let depthFormats = format.supportedDepthDataFormats
+
+        for depthFormat in depthFormats {
+            let desc = depthFormat.formatDescription
+            let mediaType = CMFormatDescriptionGetMediaType(desc)
+            let subType = CMFormatDescriptionGetMediaSubType(desc)
+            
+            print("Depth format: \(depthFormat)")
+            print("  Media type: \(FourCharCode(mediaType))")
+            print("  Media subType: \(FourCharCode(subType))")
+        }
+
+        // if !depthFormats.isEmpty {
+        //     selectedFormat = format
+        //     break
+        // }
+    }
+    
+    guard let format = selectedFormat else {
+        print("Device does not support depth data")
+        return
+    }
+    
+    // Configure the device with the selected format
+    do {
+        try device.lockForConfiguration()
+        device.activeFormat = format
+        
+        // Set a depth format
+        if let depthFormat = format.supportedDepthDataFormats.first(where: { $0.formatDescription.mediaSubType.rawValue == kCVPixelFormatType_DepthFloat32 }) {
+            device.activeDepthDataFormat = depthFormat
+        }
+
+        device.unlockForConfiguration()
+    } catch {
+        print("Failed to configure depth format: \(error)")
     }
 }
+}
+
