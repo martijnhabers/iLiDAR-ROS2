@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @StateObject private var imuManager = IMUManager()
-    @StateObject private var manager = CameraManager()
+    @StateObject private var cameraManager = CameraManager()
     @State private var hostIP: String = DataStorage.shared.currentHostIP
     @State private var hostPort: String = String(DataStorage.shared.currentPort)
     @State private var connectionState: ConnectionState = .disconnected
@@ -16,13 +16,13 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            ContentView(imuFrequency: $imuFrequency, manager: manager)
+            DashboardView(imuFrequency: $imuFrequency, cameraManager: cameraManager)
                 .tabItem {
                     Label("Sensors", systemImage: "camera.viewfinder")
                 }
             SettingsView(
                 imuManager: imuManager,
-                manager: manager,
+                cameraManager: cameraManager,
                 hostIP: $hostIP,
                 hostPort: $hostPort,
                 connectionState: $connectionState,

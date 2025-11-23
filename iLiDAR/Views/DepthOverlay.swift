@@ -10,7 +10,7 @@ import SwiftUI
 
 struct DepthOverlay: View {
     
-    @ObservedObject var manager: CameraManager
+    @ObservedObject var manager: CameraManager3
     @State private var opacity = Float(0.5)
     @Binding var maxDepth: Float
     @Binding var minDepth: Float

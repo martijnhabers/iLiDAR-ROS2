@@ -11,11 +11,12 @@ import struct
 import os
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import CompressedImage, PointCloud2, PointField
+from sensor_msgs.msg import CompressedImage, PointCloud2, PointField, Imu, Image
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import numpy as np
 from read_depth_data import read_raw_depth_data
 import queue
+import sensor_pb2
 
 # =========================
 # Configuration Parameters
@@ -156,11 +157,92 @@ class PointCloudPublisher(Node):
         self.publisher_.publish(pointcloud_msg)
         self.get_logger().info(f"Published point cloud with {len(points)} points")
 
+class DepthImagePublisher(Node):
+
+    def __init__(self):
+        super().__init__('depth_image_publisher')
+        self.publisher_ = self.create_publisher(Image, '/depth_image', 10)
+
+    def publish_depth_image(self, depth_data, width, height, frame_id='camera_frame'):
+        """
+        Publishes raw depth data as an Image message for visualization in RViz.
+
+        Parameters:
+        - depth_data: numpy.ndarray, the 2D array of depth values (float32)
+        - width, height: int, dimensions of the depth image
+        - frame_id: str, the frame ID for the message header
+        """
+
+        # Remove NaN values and scale depth to (0,255) aka uint8 for message
+        depth_data_clean = np.nan_to_num(depth_data, nan=0.0)
+    
+        # Normalize depth values to 0-255 for visualization
+        depth_min = np.min(depth_data_clean[depth_data_clean > 0]) if np.any(depth_data_clean > 0) else 0
+        depth_max = np.max(depth_data_clean)
+        if depth_max - depth_min > 0:
+            depth_normalized = (depth_data_clean - depth_min) / (depth_max - depth_min) * 255.0
+        else:
+            depth_normalized = depth_data_clean * 0.0
+        depth_normalized = depth_normalized.astype(np.uint8)
+
+
+        # Create Image message without cv_bridge
+        img_msg = Image()
+        img_msg.header.stamp = self.get_clock().now().to_msg()
+        img_msg.header.frame_id = frame_id
+        img_msg.width = width
+        img_msg.height = height
+        img_msg.encoding = 'mono8'
+        img_msg.is_bigendian = False
+        img_msg.step = width * 1
+
+        # Convert numpy array to bytes
+        img_msg.data = depth_normalized.tobytes()
+
+        self.publisher_.publish(img_msg)
+        self.get_logger().info(f"Published depth image to /depth_image ({width}x{height})")
+
+class IMUPublisher(Node):
+
+    def __init__(self):
+        super().__init__('imu_publisher')
+        self.publisher_ = self.create_publisher(Imu, '/imu/data', 10)
+    
+    def publish_imu(self, imu_data):
+        """
+        Publishes IMU data to the /imu/data topic.
+        Parameters:
+        - imu_data: sensor_pb2.IMUData, the IMU data received from the client
+        """
+
+        imu_msg = Imu()
+        imu_msg.header.stamp = self.get_clock().now().to_msg()
+        imu_msg.header.frame_id = imu_data.frame_id
+
+        # Fill in orientation
+        imu_msg.orientation.x = imu_data.orientation.x
+        imu_msg.orientation.y = imu_data.orientation.y
+        imu_msg.orientation.z = imu_data.orientation.z
+        imu_msg.orientation.w = imu_data.orientation.w
+
+        # Fill in angular velocity
+        imu_msg.angular_velocity.x = imu_data.gyro.x
+        imu_msg.angular_velocity.y = imu_data.gyro.y
+        imu_msg.angular_velocity.z = imu_data.gyro.z
+
+        # Fill in linear acceleration
+        imu_msg.linear_acceleration.x = imu_data.accel.x
+        imu_msg.linear_acceleration.y = imu_data.accel.y
+        imu_msg.linear_acceleration.z = imu_data.accel.z
+
+        self.publisher_.publish(imu_msg)
+        self.get_logger().info(f"Published IMU data (timestamp: {imu_data.timestamp})")
+
 class ClientHandler(threading.Thread):
     """
     Handles communication with a single client.
     """
-    def __init__(self, client_socket, client_address, image_publisher, pointcloud_publisher):
+    def __init__(self, client_socket, client_address, image_publisher, pointcloud_publisher, depth_image_publisher, imu_publisher):
         super().__init__(daemon=True)
         self.client_socket = client_socket
         self.client_address = client_address
@@ -168,6 +250,8 @@ class ClientHandler(threading.Thread):
         self.files = {}     # Maps filename to FileReceiver instances
         self.image_publisher = image_publisher
         self.pointcloud_publisher = pointcloud_publisher
+        self.depth_image_publisher = depth_image_publisher
+        self.imu_publisher = imu_publisher
 
     def run(self):
         print(f"[+] Connection established with {self.client_address}")
@@ -255,8 +339,8 @@ class ClientHandler(threading.Thread):
         # Map data type to string for logging
         data_type_str = DATA_TYPE_EXTENSION.get(data_type, f'Unknown({data_type})')
 
-        print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
-              f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
+        # print(f"[>] Received Packet - Filename: {filename}, Type: {data_type_str}, "
+        #       f"Seq: {sequence_number}, IsLast: {is_last}, Size: {data_size} bytes")
 
         # Initialize FileReceiver if it's the first chunk of the file
         if filename not in self.files:
@@ -273,15 +357,45 @@ class ClientHandler(threading.Thread):
             complete_data = file_receiver.reconstruct_file()
 
             if file_receiver.data_type == DATA_TYPE_BIN:
-                depth_width = 320  # Example width
-                depth_height = 240  # Example height
-                fx, fy = 498.72195, 498.72195  # Updated focal lengths from camera params
-                cx, cy = 317.22327, 239.91258  # Updated principal point offsets from camera params
+                # Decode Protobuf binary data
+                try:
+                    sensor_msg = sensor_pb2.SensorMessage()
+                    sensor_msg.ParseFromString(complete_data)
+                    
+                    # Check which type of message was received
+                    if sensor_msg.HasField('camera'):
+                        # Extract and publish camera image from protobuf
+                        camera_data = sensor_msg.camera
+                        self.image_publisher.publish_jpeg(camera_data.image_data)
+                        print(f"[+] Camera image from protobuf published to /color_image "
+                              f"(timestamp: {camera_data.timestamp}, frame_id: {camera_data.frame_id})")
+                    elif sensor_msg.HasField('imu'):
+                        # Extract and publish IMU data from protobuf
+                        imu_data = sensor_msg.imu
+                        self.imu_publisher.publish_imu(imu_data)
+                        print(f"[+] IMU data from protobuf received "
+                              f"(timestamp: {imu_data.timestamp}, frame_id: {imu_data.frame_id})")
+                    elif sensor_msg.HasField('depth'):
+                        # Extract and publish depth image from protobuf
+                        depth_img = sensor_msg.depth
 
-                # Directly process depth data from the complete payload
-                depth_data = np.frombuffer(complete_data, dtype=np.float16).reshape((depth_height, depth_width))
-                self.pointcloud_publisher.publish_pointcloud(depth_data, depth_width, depth_height, fx, fy, cx, cy)
-                print(f"[+] Point cloud published to /depth_pointcloud")
+                        try:
+                            # Try float32 first (iOS should send this)
+                            depth_array = np.frombuffer(depth_img.depth_data, dtype=np.float16)
+                            depth_data = depth_array.reshape((depth_img.height, depth_img.width))
+                        except Exception as e:
+                            print(f"[!] Failed to parse depth data as float16: {e}")
+
+                        # Publish as depth image for visualization
+                        self.depth_image_publisher.publish_depth_image(depth_data, depth_data.shape[1], depth_data.shape[0], depth_img.frame_id)
+                        # Also publish as pointcloud for 3D reconstruction
+                        self.pointcloud_publisher.publish_pointcloud(depth_data, depth_data.shape[1], depth_data.shape[0], 498.72195, 498.72195, 317.22327, 239.91258)
+                        print(f"[+] Depth image published to /depth_image and /depth_pointcloud "
+                              f"(timestamp: {depth_img.timestamp}, size: {depth_data.shape[1]}x{depth_data.shape[0]})")
+                    else:
+                        print(f"[!] Unknown protobuf message type in {filename}")
+                except Exception as e:
+                    print(f"[PROTOBUF] Failed to decode protobuf message: {e}")
 
             ack_message = f"File '{filename}' received and processed successfully."
             self.send_acknowledgment(ack_message)
@@ -303,7 +417,8 @@ class ClientHandler(threading.Thread):
 # Server Setup and Execution
 # =========================
 
-def start_server(image_publisher, pointcloud_publisher):
+def start_server(image_publisher, pointcloud_publisher, depth_image_publisher, imu_publisher):
+
     """
     Initializes and starts the server to listen for incoming connections.
     """
@@ -315,7 +430,7 @@ def start_server(image_publisher, pointcloud_publisher):
     try:
         while True:
             client_sock, client_addr = server_socket.accept()
-            handler = ClientHandler(client_sock, client_addr, image_publisher, pointcloud_publisher)
+            handler = ClientHandler(client_sock, client_addr, image_publisher, pointcloud_publisher, depth_image_publisher, imu_publisher)
             handler.start()
     except KeyboardInterrupt:
         print("\n[!] Server shutting down.")
@@ -328,17 +443,21 @@ def main():
     rclpy.init()
     image_publisher = ImagePublisher()
     pointcloud_publisher = PointCloudPublisher()
+    depth_image_publisher = DepthImagePublisher()
+    imu_publisher = IMUPublisher()
 
-    server_thread = threading.Thread(target=start_server, args=(image_publisher, pointcloud_publisher), daemon=True)
+    server_thread = threading.Thread(target=start_server, args=(image_publisher, pointcloud_publisher, depth_image_publisher, imu_publisher), daemon=True)
     server_thread.start()
 
     try:
-        rclpy.spin(pointcloud_publisher)
+        rclpy.spin(depth_image_publisher)
     except KeyboardInterrupt:
         pass
     finally:
         image_publisher.destroy_node()
         pointcloud_publisher.destroy_node()
+        depth_image_publisher.destroy_node()
+        imu_publisher.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

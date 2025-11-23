@@ -36,35 +36,6 @@ class IMUManager: ObservableObject {
         startDeviceMotionUpdates()
     }
 
-    func startDummyStreaming(frequency: Double) {
-        guard !isStreaming else {return}
-        self.frequency = frequency
-        isStreaming = true
-
-        let quat_x = 0.1
-        let quat_y = 0.2
-        let quat_z = 0.3
-        let quat_w = 0.4
-
-        let rot_x = 1.1
-        let rot_y = 1.2
-        let rot_z = 1.3
-
-        let acc_x = 2.1
-        let acc_y = 2.2
-        let acc_z = 2.3
-
-
-        let timestamp = Date().timeIntervalSince1970
-        let csv = String(format: "%.3f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n", timestamp, quat_x, quat_y, quat_z, quat_w, rot_x, rot_y, rot_z, acc_x, acc_y, acc_z)
-        let fileName = "imu_" + DataStorage.shared.eventName()
-        if let data = csv.data(using: .utf8) {
-            DataStorage.shared.socketManager.sendCSV(fileName: fileName, data: data)
-        }
-
-        print("Sending dummy values now!")
-    }
-
     func stopStreaming() {
         isStreaming = false
         if !isPreviewing { stopDeviceMotionUpdates() }
@@ -88,11 +59,42 @@ class IMUManager: ObservableObject {
         let quat = data.attitude.quaternion
         let rot = data.rotationRate
         let acc = data.userAcceleration
-        let timestamp = Date().timeIntervalSince1970
-        let csv = String(format: "%.3f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n", timestamp, quat.x, quat.y, quat.z, quat.w, rot.x, rot.y, rot.z, acc.x, acc.y, acc.z)
-        let fileName = "imu_" + DataStorage.shared.eventName()
-        if let data = csv.data(using: .utf8) {
-            DataStorage.shared.socketManager.sendCSV(fileName: fileName, data: data)
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1_000_000_000) // nanoseconds
+
+        // Prepare IMUData
+        var accel = Sensor_Vector3()
+        accel.x = Float(acc.x)
+        accel.y = Float(acc.y)
+        accel.z = Float(acc.z)
+
+        var gyro = Sensor_Vector3()
+        gyro.x = Float(rot.x)
+        gyro.y = Float(rot.y)
+        gyro.z = Float(rot.z)
+
+        var orientation = Sensor_Quaternion()
+        orientation.x = Float(quat.x)
+        orientation.y = Float(quat.y)
+        orientation.z = Float(quat.z)
+        orientation.w = Float(quat.w)
+
+        var imuData = Sensor_IMUData()
+        imuData.timestamp = timestamp
+        imuData.accel = accel
+        imuData.gyro = gyro
+        imuData.orientation = orientation
+        imuData.frameID = "imu_link"
+
+        // Wrap in SensorMessage
+        var sensorMsg = Sensor_SensorMessage()
+        sensorMsg.imu = imuData
+
+        do {
+            let protoData = try sensorMsg.serializedData()
+            let fileName = "imu_" + DataStorage.shared.eventName()
+            DataStorage.shared.socketManager.sendBIN(fileName: fileName, data: protoData)
+        } catch {
+            print("Failed to serialize SensorMessage: \(error)")
         }
     }
-} 
+}
